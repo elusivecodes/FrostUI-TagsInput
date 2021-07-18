@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FrostUI TagsInput</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/elusivecodes/frostui/dist/frost-ui.css">
+    <link rel="stylesheet" href="../dist/frost-ui-tagsinput.css">
+    <script src="https://cdn.jsdelivr.net/gh/elusivecodes/frostui/dist/frost-ui-bundle.js"></script>
+    <script src="../dist/frost-ui-tagsinput.js"></script>
+</head>
+
+<body>
+    <div class="container pt-5">
+        <div class="mb-4">
+            <label for="tagsDispose">Default</label>
+            <div class="form-input">
+                <select class="input-filled" id="tagsDispose" data-ui-placeholder="Enter tags" multiple>
+                    <option value="red" selected></option>
+                    <option value="green" selected></option>
+                    <option value="blue" selected></option>
+                </select>
+                <div class="ripple-line"></div>
+            </div>
+            <div class="mt-1">
+                <button class="btn btn-danger ripple mb-0" id="tagsDisposeBtn" type="button">Dispose</button>
+                <button class="btn btn-primary ripple mb-0" id="tagsInitBtn" type="button">Init</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        const tagsDispose = dom.findOne('#tagsDispose');
+        const tagsDisposeBtn = dom.findOne('#tagsDisposeBtn');
+        const tagsInitBtn = dom.findOne('#tagsInitBtn');
+
+        UI.TagsInput.init(tagsDispose);
+
+        dom.addEvent(tagsDisposeBtn, 'click', e => {
+            UI.TagsInput.init(tagsDispose).dispose();
+        });
+
+        dom.addEvent(tagsInitBtn, 'click', e => {
+            UI.TagsInput.init(tagsDispose);
+        });
+    </script>
+</body>
+
+</html>

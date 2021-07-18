@@ -1,0 +1,98 @@
+@import "functions";
+@import "vars";
+
+.tagsinput {
+    padding: $input-padding-y $input-padding-x;
+    cursor: text;
+
+    .btn {
+        padding: $tagsinput-btn-padding-y $tagsinput-btn-padding-x;
+        font-size: $tagsinput-btn-font-size;
+    }
+
+    > * {
+        margin-right: $tagsinput-item-spacing;
+    }
+
+    &.input-sm {
+        padding: $input-sm-padding-y $input-sm-padding-x;
+        font-size: $input-sm-font-size;
+    }
+
+    &.input-lg .btn {
+        padding: $input-lg-padding-y $input-lg-padding-x;
+        font-size: $input-lg-font-size;
+    }
+}
+
+.tagsinput-placeholder {
+    color: $input-placeholder-color;
+    pointer-events: none;
+    user-select: none;
+}
+
+.tagsinput-input {
+    width: 0;
+    min-width: 20px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    outline: 0;
+}
+
+.tagsinput-menu {
+    position: absolute;
+    z-index: $dropdown-z-index;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    font-size: $tagsinput-menu-font-size;
+    color: $tagsinput-menu-color;
+    text-align: left;
+    list-style: none;
+    background-color: $tagsinput-menu-background-color;
+    border: $tagsinput-menu-border-size $border-style $tagsinput-menu-border-color;
+}
+
+.tagsinput-items {
+    max-height: $tagsinput-items-max-height;
+    margin: 0;
+    overflow-y: auto;
+    list-style-type: none;
+}
+
+.tagsinput-item {
+    display: block;
+    width: 100%;
+    padding: $tagsinput-item-padding-y $tagsinput-item-padding-x;
+    clear: both;
+    font-weight: $tagsinput-item-font-weight;
+    color: $tagsinput-item-color;
+    text-align: inherit;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+}
+
+.tagsinput-action {
+    cursor: default;
+}
+
+.tagsinput-focus {
+    &,
+    &.tagsinput-active {
+        color: $tagsinput-item-focus-color;
+        background-color: $tagsinput-item-focus-background-color;
+    }
+}
+
+.tagsinput-active {
+    color: $tagsinput-item-active-color;
+    text-decoration: none;
+    background-color: $tagsinput-item-active-background-color;
+}
+
+.tagsinput-disabled {
+    pointer-events: none;
+    opacity: $tagsinput-item-disabled-opacity;
+}

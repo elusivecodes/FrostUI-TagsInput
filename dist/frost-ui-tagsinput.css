@@ -1,0 +1,91 @@
+.tagsinput {
+  padding: 0.5rem 0.5rem;
+  cursor: text;
+}
+.tagsinput .btn {
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+}
+.tagsinput > * {
+  margin-right: 0.25rem;
+}
+.tagsinput.input-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+.tagsinput.input-lg .btn {
+  padding: 0.5rem 0.5rem;
+  font-size: 1.25rem;
+}
+
+.tagsinput-placeholder {
+  color: #808080;
+  pointer-events: none;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
+}
+
+.tagsinput-input {
+  width: 0;
+  min-width: 20px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+}
+
+.tagsinput-menu {
+  position: absolute;
+  z-index: 1000;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  font-size: 1rem;
+  color: #121212;
+  text-align: left;
+  list-style: none;
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.tagsinput-items {
+  max-height: 250px;
+  margin: 0;
+  overflow-y: auto;
+  list-style-type: none;
+}
+
+.tagsinput-item {
+  display: block;
+  width: 100%;
+  padding: 0.25rem 1rem;
+  clear: both;
+  font-weight: 400;
+  color: #121212;
+  text-align: inherit;
+  white-space: nowrap;
+  background-color: transparent;
+  border: 0;
+}
+
+.tagsinput-action {
+  cursor: default;
+}
+
+.tagsinput-focus, .tagsinput-focus.tagsinput-active {
+  color: #fff;
+  background-color: #2b55d4;
+}
+
+.tagsinput-active {
+  color: #121212;
+  text-decoration: none;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.tagsinput-disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
