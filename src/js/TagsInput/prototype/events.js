@@ -8,6 +8,11 @@ Object.assign(TagsInput.prototype, {
      * Attach events for the TagsInput.
      */
     _events() {
+        dom.addEventDelegate(this._menuNode, 'contextmenu.ui.tagsinput', '[data-ui-action="select"]', e => {
+            // prevent menu node from showing right click menu
+            e.preventDefault();
+        });
+
         dom.addEvent(this._menuNode, 'mousedown.ui.tagsinput', e => {
             if (dom.isSame(this._input, e.target)) {
                 return;
@@ -22,9 +27,12 @@ Object.assign(TagsInput.prototype, {
             e.stopPropagation();
         });
 
-        dom.addEventDelegate(this._menuNode, 'contextmenu.ui.tagsinput', '[data-ui-action="select"]', e => {
-            // prevent menu node from showing right click menu
-            e.preventDefault();
+        dom.addEvent(this._node, 'focus.ui.tagsinput', _ => {
+            if (!dom.isSame(this._node, document.activeElement)) {
+                return;
+            }
+
+            dom.focus(this._input);
         });
 
         dom.addEventDelegate(this._itemsList, 'mouseup.ui.tagsinput', '[data-ui-action="select"]', e => {
@@ -39,8 +47,71 @@ Object.assign(TagsInput.prototype, {
             const focusedNode = dom.find('[data-ui-focus]', this._itemsList);
             dom.removeClass(focusedNode, this.constructor.classes.focus);
             dom.removeDataset(focusedNode, 'uiFocus');
+
             dom.addClass(e.currentTarget, this.constructor.classes.focus);
             dom.setDataset(e.currentTarget, 'uiFocus', true);
+        }));
+
+        dom.addEvent(this._input, 'focus.ui.tagsinput', _ => {
+            if (!dom.isSame(this._input, document.activeElement)) {
+                return;
+            }
+
+            dom.hide(this._placeholder);
+            dom.detach(this._placeholder);
+            dom.addClass(this._toggle, 'focus');
+        });
+
+        let keepFocus = false;
+        dom.addEvent(this._input, 'blur.ui.tagsinput', _ => {
+            if (dom.isSame(this._input, document.activeElement)) {
+                return;
+            }
+
+            if (keepFocus) {
+                // prevent losing focus when toggle element is focused
+                return;
+            }
+
+            const value = dom.getValue(this._input);
+
+            if (value) {
+                if (this._settings.confirmOnBlur) {
+                    this.add(value);
+                }
+
+                if (this._settings.confirmOnBlur || this._settings.clearOnBlur) {
+                    dom.setValue(this._input, '');
+                }
+            }
+
+            dom.removeClass(this._toggle, 'focus');
+            if (dom.isConnected(this._menuNode)) {
+                dom.stop(this._menuNode);
+                this._animating = false;
+
+                this.hide();
+            } else {
+                this._refreshPlaceholder();
+            }
+        });
+
+        // debounced input event
+        const getDataDebounced = Core.debounce(term => {
+            this._getData({ term });
+        }, this._settings.debounceInput);
+
+        dom.addEvent(this._input, 'input.ui.tagsinput', DOM.debounce(_ => {
+            this._updateSearchWidth();
+
+            if (!this._getData) {
+                return;
+            }
+
+            this.show();
+
+            const term = dom.getValue(this._input);
+            getDataDebounced(term);
         }));
 
         dom.addEvent(this._input, 'keydown.ui.tagsinput', e => {
@@ -87,11 +158,13 @@ Object.assign(TagsInput.prototype, {
                 if (focusedNode) {
                     // select the focused item
                     value = dom.getDataset(focusedNode, 'uiValue');
+                    dom.setValue(this._input, '');
                 } else {
                     value = dom.getValue(this._input);
                 }
 
                 this.add(value);
+                dom.focus(this._input);
 
                 return;
             }
@@ -146,24 +219,6 @@ Object.assign(TagsInput.prototype, {
             dom.focus(this._input);
         });
 
-        // debounced input event
-        const getDataDebounced = Core.debounce(term => {
-            this._getData({ term });
-        }, this._settings.debounceInput);
-
-        dom.addEvent(this._input, 'input.ui.tagsinput', DOM.debounce(_ => {
-            this._updateSearchWidth();
-
-            if (!this._getData) {
-                return;
-            }
-
-            this.show();
-
-            const term = dom.getValue(this._input);
-            getDataDebounced(term);
-        }));
-
         if (this._settings.getResults) {
             // infinite scrolling event
             dom.addEvent(this._itemsList, 'scroll.ui.tagsinput', Core.throttle(_ => {
@@ -184,15 +239,6 @@ Object.assign(TagsInput.prototype, {
             }, 250, false));
         }
 
-        dom.addEvent(this._node, 'focus.ui.tagsinput', _ => {
-            if (!dom.isSame(this._node, document.activeElement)) {
-                return;
-            }
-
-            dom.focus(this._input);
-        });
-
-        let keepFocus = false;
         dom.addEvent(this._toggle, 'mousedown.ui.tagsinput', e => {
             if (dom.is(e.target, '[data-ui-action="clear"]')) {
                 e.preventDefault();
@@ -230,46 +276,6 @@ Object.assign(TagsInput.prototype, {
             value.splice(index, 1)
             this._setValue(value, true);
             dom.focus(this._input);
-        });
-
-        dom.addEvent(this._input, 'focus.ui.tagsinput', _ => {
-            if (!dom.isSame(this._input, document.activeElement)) {
-                return;
-            }
-
-            dom.hide(this._placeholder);
-            dom.detach(this._placeholder);
-            dom.addClass(this._toggle, 'focus');
-        });
-
-        dom.addEvent(this._input, 'blur.ui.tagsinput', _ => {
-            if (dom.isSame(this._input, document.activeElement)) {
-                return;
-            }
-
-            if (keepFocus) {
-                // prevent losing focus when toggle element is focused
-                return;
-            }
-
-            const value = dom.getValue(this._input);
-
-            if (value) {
-                if (this._settings.confirmOnBlur) {
-                    this.add(value);
-                }
-
-                if (this._settings.confirmOnBlur || this._settings.clearOnBlur) {
-                    dom.setValue(this._input, '');
-                }
-            }
-
-            dom.removeClass(this._toggle, 'focus');
-            if (dom.isConnected(this._menuNode)) {
-                this.hide();
-            } else {
-                this._refreshPlaceholder();
-            }
         });
     }
 

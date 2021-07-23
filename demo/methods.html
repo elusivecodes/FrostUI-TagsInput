@@ -14,9 +14,9 @@
 <body>
     <div class="container pt-5">
         <div class="mb-4">
-            <label for="tagsDispose">Default</label>
+            <label for="tagsDefault">Default</label>
             <div class="form-input">
-                <select class="input-filled" id="tagsDispose" data-ui-placeholder="Enter tags" multiple>
+                <select class="input-filled" id="tagsDefault" data-ui-placeholder="Enter tags" multiple>
                     <option value="red" selected></option>
                     <option value="green" selected></option>
                     <option value="blue" selected></option>
@@ -24,25 +24,106 @@
                 <div class="ripple-line"></div>
             </div>
             <div class="mt-1">
-                <button class="btn btn-danger ripple mb-0" id="tagsDisposeBtn" type="button">Dispose</button>
-                <button class="btn btn-primary ripple mb-0" id="tagsInitBtn" type="button">Init</button>
+                <div class="btn-group">
+                    <button class="btn btn-primary ripple mb-0" id="tagsInit" type="button">Init</button>
+                    <button class="btn btn-danger ripple mb-0" id="tagsDispose" type="button">Dispose</button>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-success ripple mb-0" id="tagsEnable" type="button">Enable</button>
+                    <button class="btn btn-warning ripple mb-0" id="tagsDisable" type="button">Disable</button>
+                </div>
             </div>
+            <div class="mt-1">
+                <button class="btn btn-secondary ripple mb-0" id="tagsAdd" type="button">Add (test)</button>
+                <button class="btn btn-secondary ripple mb-0" id="tagsRemove" type="button">Remove (test)</button>
+                <button class="btn btn-dark ripple mb-0" id="tagsRemoveAll" type="button">Remove All</button>
+            </div>
+            <div class="mt-1">
+                <button class="btn btn-secondary ripple mb-0" id="tagsGetMaxSelections" type="button">Get Max Selections</button>
+                <button class="btn btn-secondary ripple mb-0" id="tagsGetPlaceholder" type="button">Get Placeholder</button>
+                <button class="btn btn-secondary ripple mb-0" id="tagsGetValue" type="button">Get Value</button>
+            </div>
+            <div class="mt-1">
+                <button class="btn btn-secondary ripple mb-0" id="tagsSetMaxSelections" type="button">Set Max Selections (2)</button>
+                <button class="btn btn-secondary ripple mb-0" id="tagsSetPlaceholder" type="button">Set Placeholder</button>
+                <button class="btn btn-secondary ripple mb-0" id="tagsSetValue" type="button">Set Value (test)</button>
+            </div>
+            <samp id="output"></samp>
         </div>
     </div>
     <script>
+        const tagsDefault = dom.findOne('#tagsDefault');
+        const tagsInit = dom.findOne('#tagsInit');
         const tagsDispose = dom.findOne('#tagsDispose');
-        const tagsDisposeBtn = dom.findOne('#tagsDisposeBtn');
-        const tagsInitBtn = dom.findOne('#tagsInitBtn');
+        const tagsEnable = dom.findOne('#tagsEnable');
+        const tagsDisable = dom.findOne('#tagsDisable');
+        const tagsAdd = dom.findOne('#tagsAdd');
+        const tagsRemove = dom.findOne('#tagsRemove');
+        const tagsRemoveAll = dom.findOne('#tagsRemoveAll');
+        const tagsGetMaxSelections = dom.findOne('#tagsGetMaxSelections');
+        const tagsGetPlaceholder = dom.findOne('#tagsGetPlaceholder');
+        const tagsGetValue = dom.findOne('#tagsGetValue');
+        const tagsSetMaxSelections = dom.findOne('#tagsSetMaxSelections');
+        const tagsSetPlaceholder = dom.findOne('#tagsSetPlaceholder');
+        const tagsSetValue = dom.findOne('#tagsSetValue');
+        const output = dom.findOne('#output');
 
-        UI.TagsInput.init(tagsDispose);
-
-        dom.addEvent(tagsDisposeBtn, 'click', e => {
-            UI.TagsInput.init(tagsDispose).dispose();
+        dom.addEvent(tagsInit, 'click', e => {
+            UI.TagsInput.init(tagsDefault);
         });
 
-        dom.addEvent(tagsInitBtn, 'click', e => {
-            UI.TagsInput.init(tagsDispose);
+        dom.addEvent(tagsDispose, 'click', e => {
+            UI.TagsInput.init(tagsDefault).dispose();
         });
+
+        dom.addEvent(tagsEnable, 'click', e => {
+            UI.TagsInput.init(tagsDefault).enable();
+        });
+
+        dom.addEvent(tagsDisable, 'click', e => {
+            UI.TagsInput.init(tagsDefault).disable();
+        });
+
+        dom.addEvent(tagsAdd, 'click', e => {
+            UI.TagsInput.init(tagsDefault).add('test');
+        });
+
+        dom.addEvent(tagsRemove, 'click', e => {
+            UI.TagsInput.init(tagsDefault).remove('test');
+        });
+
+        dom.addEvent(tagsRemoveAll, 'click', e => {
+            UI.TagsInput.init(tagsDefault).removeAll();
+        });
+
+        dom.addEvent(tagsGetMaxSelections, 'click', e => {
+            const maxSelections = UI.TagsInput.init(tagsDefault).getMaxSelections();
+            dom.setText(output, `Max Selections: ${maxSelections}`);
+        });
+
+        dom.addEvent(tagsGetPlaceholder, 'click', e => {
+            const placeholder = UI.TagsInput.init(tagsDefault).getPlaceholder();
+            dom.setText(output, `Placeholder: ${placeholder}`);
+        });
+
+        dom.addEvent(tagsGetValue, 'click', e => {
+            const value = UI.TagsInput.init(tagsDefault).getValue();
+            dom.setText(output, `Value: ${value}`);
+        });
+
+        dom.addEvent(tagsSetMaxSelections, 'click', e => {
+            UI.TagsInput.init(tagsDefault).setMaxSelections(2);
+        });
+
+        dom.addEvent(tagsSetPlaceholder, 'click', e => {
+            UI.TagsInput.init(tagsDefault).setPlaceholder('Placeholder');
+        });
+
+        dom.addEvent(tagsSetValue, 'click', e => {
+            UI.TagsInput.init(tagsDefault).setValue(['test']);
+        });
+
+        dom.triggerEvent(tagsInit, 'click');
     </script>
 </body>
 

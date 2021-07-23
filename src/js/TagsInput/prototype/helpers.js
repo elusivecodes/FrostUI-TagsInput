@@ -54,7 +54,6 @@ Object.assign(TagsInput.prototype, {
         if (this._value.length) {
             for (const value of this._value) {
                 const item = this._findValue(value);
-
                 dom.append(this._node, item.element);
 
                 const group = this._renderSelection(item);

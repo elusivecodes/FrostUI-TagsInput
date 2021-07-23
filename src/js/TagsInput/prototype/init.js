@@ -21,13 +21,9 @@ Object.assign(TagsInput.prototype, {
                 return this._renderInfo(this._settings.lang.maxSelections);
             }
 
-            let results = this._data;
-
-            if (term) {
-                // filter results
-                results = this._settings.sortResults(results, term)
-                    .filter(item => this._settings.isMatch(item.value, term));
-            }
+            // filter results
+            const results = this._settings.sortResults(this._data, term)
+                .filter(item => this._settings.isMatch(item.value, term));
 
             this._renderResults(results);
             this.update();

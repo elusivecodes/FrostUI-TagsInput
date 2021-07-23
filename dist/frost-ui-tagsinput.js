@@ -1,5 +1,5 @@
 /**
- * FrostUI-TagsInput v1.0
+ * FrostUI-TagsInput v1.0.1
  * https://github.com/elusivecodes/FrostUI-TagsInput
  */
 (function(global, factory) {
@@ -237,11 +237,13 @@
          * @returns {TagsInput} The TagsInput.
          */
         add(value) {
-            if (this._settings.trimValue) {
-                value = value.trim();
-            }
+            if (!dom.is(this._node, ':disabled')) {
+                if (this._settings.trimValue) {
+                    value = value.trim();
+                }
 
-            this._setValue(this._value.concat([value]), true);
+                this._setValue(this._value.concat([value]), true);
+            }
 
             return this;
         },
@@ -276,7 +278,9 @@
          * @returns {TagsInput} The TagsInput.
          */
         remove(value) {
-            this._setValue(this._value.filter(val => val !== value), true);
+            if (!dom.is(this._node, ':disabled')) {
+                this._setValue(this._value.filter(val => val !== value), true);
+            }
 
             return this;
         },
@@ -285,8 +289,10 @@
          * Remove all values.
          * @returns {TagsInput} The TagsInput.
          */
-        remove() {
-            this._setValue([], true);
+        removeAll() {
+            if (!dom.is(this._node, ':disabled')) {
+                this._setValue([], true);
+            }
 
             return this;
         },
@@ -327,7 +333,7 @@
          */
         setValue(value) {
             if (!dom.is(this._node, ':disabled')) {
-                this._selectValue(value);
+                this._setValue(value, true);
             }
 
             return this;
@@ -346,6 +352,11 @@
          * Attach events for the TagsInput.
          */
         _events() {
+            dom.addEventDelegate(this._menuNode, 'contextmenu.ui.tagsinput', '[data-ui-action="select"]', e => {
+                // prevent menu node from showing right click menu
+                e.preventDefault();
+            });
+
             dom.addEvent(this._menuNode, 'mousedown.ui.tagsinput', e => {
                 if (dom.isSame(this._input, e.target)) {
                     return;
@@ -360,9 +371,12 @@
                 e.stopPropagation();
             });
 
-            dom.addEventDelegate(this._menuNode, 'contextmenu.ui.tagsinput', '[data-ui-action="select"]', e => {
-                // prevent menu node from showing right click menu
-                e.preventDefault();
+            dom.addEvent(this._node, 'focus.ui.tagsinput', _ => {
+                if (!dom.isSame(this._node, document.activeElement)) {
+                    return;
+                }
+
+                dom.focus(this._input);
             });
 
             dom.addEventDelegate(this._itemsList, 'mouseup.ui.tagsinput', '[data-ui-action="select"]', e => {
@@ -377,8 +391,71 @@
                 const focusedNode = dom.find('[data-ui-focus]', this._itemsList);
                 dom.removeClass(focusedNode, this.constructor.classes.focus);
                 dom.removeDataset(focusedNode, 'uiFocus');
+
                 dom.addClass(e.currentTarget, this.constructor.classes.focus);
                 dom.setDataset(e.currentTarget, 'uiFocus', true);
+            }));
+
+            dom.addEvent(this._input, 'focus.ui.tagsinput', _ => {
+                if (!dom.isSame(this._input, document.activeElement)) {
+                    return;
+                }
+
+                dom.hide(this._placeholder);
+                dom.detach(this._placeholder);
+                dom.addClass(this._toggle, 'focus');
+            });
+
+            let keepFocus = false;
+            dom.addEvent(this._input, 'blur.ui.tagsinput', _ => {
+                if (dom.isSame(this._input, document.activeElement)) {
+                    return;
+                }
+
+                if (keepFocus) {
+                    // prevent losing focus when toggle element is focused
+                    return;
+                }
+
+                const value = dom.getValue(this._input);
+
+                if (value) {
+                    if (this._settings.confirmOnBlur) {
+                        this.add(value);
+                    }
+
+                    if (this._settings.confirmOnBlur || this._settings.clearOnBlur) {
+                        dom.setValue(this._input, '');
+                    }
+                }
+
+                dom.removeClass(this._toggle, 'focus');
+                if (dom.isConnected(this._menuNode)) {
+                    dom.stop(this._menuNode);
+                    this._animating = false;
+
+                    this.hide();
+                } else {
+                    this._refreshPlaceholder();
+                }
+            });
+
+            // debounced input event
+            const getDataDebounced = Core.debounce(term => {
+                this._getData({ term });
+            }, this._settings.debounceInput);
+
+            dom.addEvent(this._input, 'input.ui.tagsinput', DOM.debounce(_ => {
+                this._updateSearchWidth();
+
+                if (!this._getData) {
+                    return;
+                }
+
+                this.show();
+
+                const term = dom.getValue(this._input);
+                getDataDebounced(term);
             }));
 
             dom.addEvent(this._input, 'keydown.ui.tagsinput', e => {
@@ -425,11 +502,13 @@
                     if (focusedNode) {
                         // select the focused item
                         value = dom.getDataset(focusedNode, 'uiValue');
+                        dom.setValue(this._input, '');
                     } else {
                         value = dom.getValue(this._input);
                     }
 
                     this.add(value);
+                    dom.focus(this._input);
 
                     return;
                 }
@@ -484,24 +563,6 @@
                 dom.focus(this._input);
             });
 
-            // debounced input event
-            const getDataDebounced = Core.debounce(term => {
-                this._getData({ term });
-            }, this._settings.debounceInput);
-
-            dom.addEvent(this._input, 'input.ui.tagsinput', DOM.debounce(_ => {
-                this._updateSearchWidth();
-
-                if (!this._getData) {
-                    return;
-                }
-
-                this.show();
-
-                const term = dom.getValue(this._input);
-                getDataDebounced(term);
-            }));
-
             if (this._settings.getResults) {
                 // infinite scrolling event
                 dom.addEvent(this._itemsList, 'scroll.ui.tagsinput', Core.throttle(_ => {
@@ -522,15 +583,6 @@
                 }, 250, false));
             }
 
-            dom.addEvent(this._node, 'focus.ui.tagsinput', _ => {
-                if (!dom.isSame(this._node, document.activeElement)) {
-                    return;
-                }
-
-                dom.focus(this._input);
-            });
-
-            let keepFocus = false;
             dom.addEvent(this._toggle, 'mousedown.ui.tagsinput', e => {
                 if (dom.is(e.target, '[data-ui-action="clear"]')) {
                     e.preventDefault();
@@ -568,46 +620,6 @@
                 value.splice(index, 1)
                 this._setValue(value, true);
                 dom.focus(this._input);
-            });
-
-            dom.addEvent(this._input, 'focus.ui.tagsinput', _ => {
-                if (!dom.isSame(this._input, document.activeElement)) {
-                    return;
-                }
-
-                dom.hide(this._placeholder);
-                dom.detach(this._placeholder);
-                dom.addClass(this._toggle, 'focus');
-            });
-
-            dom.addEvent(this._input, 'blur.ui.tagsinput', _ => {
-                if (dom.isSame(this._input, document.activeElement)) {
-                    return;
-                }
-
-                if (keepFocus) {
-                    // prevent losing focus when toggle element is focused
-                    return;
-                }
-
-                const value = dom.getValue(this._input);
-
-                if (value) {
-                    if (this._settings.confirmOnBlur) {
-                        this.add(value);
-                    }
-
-                    if (this._settings.confirmOnBlur || this._settings.clearOnBlur) {
-                        dom.setValue(this._input, '');
-                    }
-                }
-
-                dom.removeClass(this._toggle, 'focus');
-                if (dom.isConnected(this._menuNode)) {
-                    this.hide();
-                } else {
-                    this._refreshPlaceholder();
-                }
             });
         }
 
@@ -670,7 +682,6 @@
             if (this._value.length) {
                 for (const value of this._value) {
                     const item = this._findValue(value);
-
                     dom.append(this._node, item.element);
 
                     const group = this._renderSelection(item);
@@ -806,13 +817,9 @@
                     return this._renderInfo(this._settings.lang.maxSelections);
                 }
 
-                let results = this._data;
-
-                if (term) {
-                    // filter results
-                    results = this._settings.sortResults(results, term)
-                        .filter(item => this._settings.isMatch(item.value, term));
-                }
+                // filter results
+                const results = this._settings.sortResults(this._data, term)
+                    .filter(item => this._settings.isMatch(item.value, term));
 
                 this._renderResults(results);
                 this.update();

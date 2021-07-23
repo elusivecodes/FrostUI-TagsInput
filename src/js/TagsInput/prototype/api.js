@@ -10,11 +10,13 @@ Object.assign(TagsInput.prototype, {
      * @returns {TagsInput} The TagsInput.
      */
     add(value) {
-        if (this._settings.trimValue) {
-            value = value.trim();
-        }
+        if (!dom.is(this._node, ':disabled')) {
+            if (this._settings.trimValue) {
+                value = value.trim();
+            }
 
-        this._setValue(this._value.concat([value]), true);
+            this._setValue(this._value.concat([value]), true);
+        }
 
         return this;
     },
@@ -49,7 +51,9 @@ Object.assign(TagsInput.prototype, {
      * @returns {TagsInput} The TagsInput.
      */
     remove(value) {
-        this._setValue(this._value.filter(val => val !== value), true);
+        if (!dom.is(this._node, ':disabled')) {
+            this._setValue(this._value.filter(val => val !== value), true);
+        }
 
         return this;
     },
@@ -58,8 +62,10 @@ Object.assign(TagsInput.prototype, {
      * Remove all values.
      * @returns {TagsInput} The TagsInput.
      */
-    remove() {
-        this._setValue([], true);
+    removeAll() {
+        if (!dom.is(this._node, ':disabled')) {
+            this._setValue([], true);
+        }
 
         return this;
     },
@@ -100,7 +106,7 @@ Object.assign(TagsInput.prototype, {
      */
     setValue(value) {
         if (!dom.is(this._node, ':disabled')) {
-            this._selectValue(value);
+            this._setValue(value, true);
         }
 
         return this;
