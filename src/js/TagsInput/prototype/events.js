@@ -120,6 +120,7 @@ Object.assign(TagsInput.prototype, {
 
                 const value = dom.getValue(this._input);
                 this.add(value);
+                dom.setValue(this._input, '');
                 dom.focus(this._input);
                 return;
             }
@@ -147,7 +148,7 @@ Object.assign(TagsInput.prototype, {
                 return;
             }
 
-            if (!dom.isConnected(this._menuNode) && ['ArrowDown', 'ArrowUp', 'Enter'].includes(e.code)) {
+            if (!dom.isConnected(this._menuNode) && ['ArrowDown', 'ArrowUp'].includes(e.code)) {
                 return this.show();
             }
 
@@ -164,6 +165,7 @@ Object.assign(TagsInput.prototype, {
                 }
 
                 this.add(value);
+                dom.setValue(this._input, '');
                 dom.focus(this._input);
 
                 return;

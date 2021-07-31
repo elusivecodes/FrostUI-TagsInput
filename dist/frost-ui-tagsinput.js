@@ -1,5 +1,5 @@
 /**
- * FrostUI-TagsInput v1.0.1
+ * FrostUI-TagsInput v1.0.2
  * https://github.com/elusivecodes/FrostUI-TagsInput
  */
 (function(global, factory) {
@@ -464,6 +464,7 @@
 
                     const value = dom.getValue(this._input);
                     this.add(value);
+                    dom.setValue(this._input, '');
                     dom.focus(this._input);
                     return;
                 }
@@ -491,7 +492,7 @@
                     return;
                 }
 
-                if (!dom.isConnected(this._menuNode) && ['ArrowDown', 'ArrowUp', 'Enter'].includes(e.code)) {
+                if (!dom.isConnected(this._menuNode) && ['ArrowDown', 'ArrowUp'].includes(e.code)) {
                     return this.show();
                 }
 
@@ -508,6 +509,7 @@
                     }
 
                     this.add(value);
+                    dom.setValue(this._input, '');
                     dom.focus(this._input);
 
                     return;
