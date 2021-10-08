@@ -255,14 +255,13 @@ Object.assign(TagsInput.prototype, {
                 dom.addClass(this._toggle, 'focus');
             }
 
-            if (!e.button) {
-                this.show();
-            }
-
-            dom.focus(this._input);
             dom.addEventOnce(window, 'mouseup.ui.tagsinput', _ => {
                 keepFocus = false;
                 dom.focus(this._input);
+
+                if (!e.button) {
+                    this.show();
+                }
             });
         });
 

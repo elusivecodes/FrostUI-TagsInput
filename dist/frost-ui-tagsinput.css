@@ -17,6 +17,9 @@
   padding: 0.5rem 0.5rem;
   font-size: 1.25rem;
 }
+.tagsinput.focus ~ .ripple-line {
+  z-index: 3;
+}
 
 .tagsinput-placeholder {
   color: #808080;
