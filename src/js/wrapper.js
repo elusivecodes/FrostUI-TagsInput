@@ -1,5 +1,5 @@
 /**
- * FrostUI-TagsInput v1.0.7
+ * FrostUI-TagsInput v1.0.8
  * https://github.com/elusivecodes/FrostUI-TagsInput
  */
 (function(global, factory) {
