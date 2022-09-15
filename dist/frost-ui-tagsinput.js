@@ -1,5 +1,5 @@
 /**
- * FrostUI-TagsInput v1.0.9
+ * FrostUI-TagsInput v1.0.10
  * https://github.com/elusivecodes/FrostUI-TagsInput
  */
 (function(global, factory) {
@@ -952,7 +952,7 @@
          * @returns {HTMLElement} The item element.
          */
         _renderItem(item) {
-            const active = this._value.includes(item.value);
+            const active = this._value.some(value => value == item.value);
 
             const element = dom.create('div', {
                 html: this._settings.sanitize(
