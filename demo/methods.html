@@ -5,9 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FrostUI TagsInput</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/elusivecodes/frostui@1.4.6/dist/frost-ui.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/elusivecodes/frostui@latest/dist/frost-ui.css">
     <link rel="stylesheet" href="../dist/frost-ui-tagsinput.css">
-    <script src="https://cdn.jsdelivr.net/gh/elusivecodes/frostui@1.4.6/dist/frost-ui-bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/elusivecodes/frostui@latest/dist/frost-ui-bundle.js"></script>
     <script src="../dist/frost-ui-tagsinput.js"></script>
 </head>
 
@@ -52,78 +52,78 @@
         </div>
     </div>
     <script>
-        const tagsDefault = dom.findOne('#tagsDefault');
-        const tagsInit = dom.findOne('#tagsInit');
-        const tagsDispose = dom.findOne('#tagsDispose');
-        const tagsEnable = dom.findOne('#tagsEnable');
-        const tagsDisable = dom.findOne('#tagsDisable');
-        const tagsAdd = dom.findOne('#tagsAdd');
-        const tagsRemove = dom.findOne('#tagsRemove');
-        const tagsRemoveAll = dom.findOne('#tagsRemoveAll');
-        const tagsGetMaxSelections = dom.findOne('#tagsGetMaxSelections');
-        const tagsGetPlaceholder = dom.findOne('#tagsGetPlaceholder');
-        const tagsGetValue = dom.findOne('#tagsGetValue');
-        const tagsSetMaxSelections = dom.findOne('#tagsSetMaxSelections');
-        const tagsSetPlaceholder = dom.findOne('#tagsSetPlaceholder');
-        const tagsSetValue = dom.findOne('#tagsSetValue');
-        const output = dom.findOne('#output');
+        const tagsDefault = $.findOne('#tagsDefault');
+        const tagsInit = $.findOne('#tagsInit');
+        const tagsDispose = $.findOne('#tagsDispose');
+        const tagsEnable = $.findOne('#tagsEnable');
+        const tagsDisable = $.findOne('#tagsDisable');
+        const tagsAdd = $.findOne('#tagsAdd');
+        const tagsRemove = $.findOne('#tagsRemove');
+        const tagsRemoveAll = $.findOne('#tagsRemoveAll');
+        const tagsGetMaxSelections = $.findOne('#tagsGetMaxSelections');
+        const tagsGetPlaceholder = $.findOne('#tagsGetPlaceholder');
+        const tagsGetValue = $.findOne('#tagsGetValue');
+        const tagsSetMaxSelections = $.findOne('#tagsSetMaxSelections');
+        const tagsSetPlaceholder = $.findOne('#tagsSetPlaceholder');
+        const tagsSetValue = $.findOne('#tagsSetValue');
+        const output = $.findOne('#output');
 
-        dom.addEvent(tagsInit, 'click', e => {
+        $.addEvent(tagsInit, 'click', e => {
             UI.TagsInput.init(tagsDefault);
         });
 
-        dom.addEvent(tagsDispose, 'click', e => {
+        $.addEvent(tagsDispose, 'click', e => {
             UI.TagsInput.init(tagsDefault).dispose();
         });
 
-        dom.addEvent(tagsEnable, 'click', e => {
+        $.addEvent(tagsEnable, 'click', e => {
             UI.TagsInput.init(tagsDefault).enable();
         });
 
-        dom.addEvent(tagsDisable, 'click', e => {
+        $.addEvent(tagsDisable, 'click', e => {
             UI.TagsInput.init(tagsDefault).disable();
         });
 
-        dom.addEvent(tagsAdd, 'click', e => {
+        $.addEvent(tagsAdd, 'click', e => {
             UI.TagsInput.init(tagsDefault).add('test');
         });
 
-        dom.addEvent(tagsRemove, 'click', e => {
+        $.addEvent(tagsRemove, 'click', e => {
             UI.TagsInput.init(tagsDefault).remove('test');
         });
 
-        dom.addEvent(tagsRemoveAll, 'click', e => {
+        $.addEvent(tagsRemoveAll, 'click', e => {
             UI.TagsInput.init(tagsDefault).removeAll();
         });
 
-        dom.addEvent(tagsGetMaxSelections, 'click', e => {
+        $.addEvent(tagsGetMaxSelections, 'click', e => {
             const maxSelections = UI.TagsInput.init(tagsDefault).getMaxSelections();
-            dom.setText(output, `Max Selections: ${maxSelections}`);
+            $.setText(output, `Max Selections: ${maxSelections}`);
         });
 
-        dom.addEvent(tagsGetPlaceholder, 'click', e => {
+        $.addEvent(tagsGetPlaceholder, 'click', e => {
             const placeholder = UI.TagsInput.init(tagsDefault).getPlaceholder();
-            dom.setText(output, `Placeholder: ${placeholder}`);
+            $.setText(output, `Placeholder: ${placeholder}`);
         });
 
-        dom.addEvent(tagsGetValue, 'click', e => {
+        $.addEvent(tagsGetValue, 'click', e => {
             const value = UI.TagsInput.init(tagsDefault).getValue();
-            dom.setText(output, `Value: ${value}`);
+            $.setText(output, `Value: ${value}`);
         });
 
-        dom.addEvent(tagsSetMaxSelections, 'click', e => {
+        $.addEvent(tagsSetMaxSelections, 'click', e => {
             UI.TagsInput.init(tagsDefault).setMaxSelections(2);
         });
 
-        dom.addEvent(tagsSetPlaceholder, 'click', e => {
+        $.addEvent(tagsSetPlaceholder, 'click', e => {
             UI.TagsInput.init(tagsDefault).setPlaceholder('Placeholder');
         });
 
-        dom.addEvent(tagsSetValue, 'click', e => {
+        $.addEvent(tagsSetValue, 'click', e => {
             UI.TagsInput.init(tagsDefault).setValue(['test']);
         });
 
-        dom.triggerEvent(tagsInit, 'click');
+        $.triggerEvent(tagsInit, 'click');
     </script>
 </body>
 

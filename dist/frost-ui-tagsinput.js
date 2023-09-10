@@ -1,90 +1,62 @@
-/**
- * FrostUI-TagsInput v1.0.10
- * https://github.com/elusivecodes/FrostUI-TagsInput
- */
-(function(global, factory) {
-    'use strict';
-
-    if (typeof module === 'object' && typeof module.exports === 'object') {
-        module.exports = factory;
-    } else {
-        factory(global);
-    }
-
-})(window, function(window) {
-    'use strict';
-
-    if (!window) {
-        throw new Error('FrostUI-TagsInput requires a Window.');
-    }
-
-    if (!('UI' in window)) {
-        throw new Error('FrostUI-TagsInput requires FrostUI.');
-    }
-
-    const Core = window.Core;
-    const DOM = window.DOM;
-    const dom = window.dom;
-    const UI = window.UI;
-    const document = window.document;
+(function (global, factory) {
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('@fr0st/query'), require('@fr0st/ui')) :
+    typeof define === 'function' && define.amd ? define(['exports', '@fr0st/query', '@fr0st/ui'], factory) :
+    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.UI = global.UI || {}, global.fQuery, global.UI));
+})(this, (function (exports, $, ui) { 'use strict';
 
     /**
      * TagsInput Class
      * @class
      */
-    class TagsInput extends UI.BaseComponent {
-
+    class TagsInput extends ui.BaseComponent {
         /**
          * New TagsInput constructor.
          * @param {HTMLElement} node The input node.
          * @param {object} [settings] The options to create the TagsInput with.
-         * @returns {TagsInput} A new TagsInput object.
          */
         constructor(node, settings) {
             super(node, settings);
 
-            if (!dom.is(this._node, 'select')) {
+            if (!$.is(this._node, 'select')) {
                 throw new Error('TagsInput must be created on a select element');
             }
 
-            this._placeholderText = this._settings.placeholder;
-            this._maxSelections = this._settings.maxSelections;
+            this._placeholderText = this._options.placeholder;
+            this._maxSelections = this._options.maxSelections;
 
             this._data = [];
-            this._value = null;
+            this._optionLookup = {};
+            this._activeItems = [];
 
             this._getData = null;
-            this._getResults = null;
 
             let data;
-            if (Core.isFunction(this._settings.getResults)) {
-                this._getResultsCallbackInit();
+            if ($._isFunction(this._options.getResults)) {
                 this._getResultsInit();
-            } else if (Core.isArray(this._settings.data)) {
-                data = this._settings.data;
+            } else if ($._isArray(this._options.data)) {
+                data = this._options.data;
+            } else {
+                data = this._getDataFromDOM(this._node);
             }
 
             if (data) {
-                this._data = this.constructor._parseData(data);
+                this._data = data;
                 this._getDataInit();
             }
 
-            const values = [...this._node.selectedOptions].map(option => dom.getValue(option));
+            const value = [...this._node.selectedOptions].map((option) => $.getValue(option));
 
             this._render();
-            this._setValue(values);
+            this._setValue(value);
             this._events();
         }
 
         /**
          * Disable the TagsInput.
-         * @returns {TagsInput} The TagsInput.
          */
         disable() {
-            dom.setAttribute(this._node, 'disabled', true);
+            $.setAttribute(this._node, { disabled: true });
             this._refreshDisabled();
-
-            return this;
         }
 
         /**
@@ -96,1078 +68,1082 @@
                 this._popper = null;
             }
 
-            dom.removeAttribute(this._node, 'tabindex');
-            dom.removeEvent(this._node, 'focus.ui.tagsinput');
-            dom.removeClass(this._node, this.constructor.classes.hide);
-            dom.remove(this._menuNode);
-            dom.remove(this._toggle);
+            $.removeAttribute(this._node, 'tabindex');
+            $.removeEvent(this._node, 'focus.ui.tagsinput');
+            $.removeClass(this._node, this.constructor.classes.hide);
+            $.remove(this._menuNode);
+            $.remove(this._toggle);
 
             this._toggle = null;
             this._clear = null;
-            this._input = null;
+            this._searchInput = null;
             this._placeholder = null;
             this._menuNode = null;
-            this._itemsList = null;
             this._data = null;
+            this._optionLookup = null;
+            this._activeItems = null;
             this._value = null;
             this._request = null;
             this._popperOptions = null;
+            this._getData = null;
 
             super.dispose();
         }
 
         /**
          * Enable the TagsInput.
-         * @returns {TagsInput} The TagsInput.
          */
         enable() {
-            dom.removeAttribute(this._node, 'disabled');
+            $.removeAttribute(this._node, 'disabled');
             this._refreshDisabled();
-
-            return this;
         }
 
         /**
          * Hide the TagsInput.
-         * @returns {TagsInput} The TagsInput.
          */
         hide() {
             if (
-                this._animating ||
-                !dom.isConnected(this._menuNode) ||
-                !dom.triggerOne(this._node, 'hide.ui.tagsinput')
+                !$.isConnected(this._menuNode) ||
+                $.getDataset(this._menuNode, 'uiAnimating') ||
+                !$.triggerOne(this._node, 'hide.ui.tagsinput')
             ) {
-                return this;
+                return;
             }
 
-            this._animating = true;
+            $.setDataset(this._menuNode, { uiAnimating: 'out' });
+
             this._refreshPlaceholder();
 
-            dom.fadeOut(this._menuNode, {
-                duration: this._settings.duration
-            }).then(_ => {
+            $.fadeOut(this._menuNode, {
+                duration: this._options.duration,
+            }).then((_) => {
                 this._popper.dispose();
                 this._popper = null;
 
-                dom.empty(this._itemsList);
-                dom.detach(this._menuNode);
-                dom.setAttribute(this._toggle, 'aria-expanded', false);
-                dom.triggerEvent(this._node, 'hidden.ui.tagsinput');
-            }).catch(_ => { }).finally(_ => {
-                this._animating = false;
+                $.empty(this._menuNode);
+                $.detach(this._menuNode);
+                $.removeDataset(this._menuNode, 'uiAnimating');
+                $.setAttribute(this._toggle, {
+                    'aria-expanded': false,
+                    'aria-activedescendent': '',
+                });
+                $.triggerEvent(this._node, 'hidden.ui.tagsinput');
+            }).catch((_) => {
+                if ($.getDataset(this._menuNode, 'uiAnimating') === 'out') {
+                    $.removeDataset(this._menuNode, 'uiAnimating');
+                }
             });
-
-            return this;
         }
 
         /**
          * Show the TagsInput.
-         * @returns {TagsInput} The TagsInput.
          */
         show() {
             if (
-                dom.is(this._node, ':disabled') ||
-                dom.hasAttribute(this._node, 'readonly') ||
                 !this._getData ||
-                this._animating ||
-                dom.isConnected(this._menuNode) ||
-                !dom.triggerOne(this._node, 'show.ui.tagsinput')
+                $.is(this._node, ':disabled') ||
+                $.isConnected(this._menuNode) ||
+                $.getDataset(this._menuNode, 'uiAnimating') ||
+                !$.triggerOne(this._node, 'show.ui.tagsinput')
             ) {
-                return this;
+                return;
             }
 
-            this._getData({});
+            const term = $.getValue(this._searchInput);
+            this._getData({ term });
 
-            this._animating = true;
+            $.setDataset(this._menuNode, { uiAnimating: 'in' });
 
-            if (this._settings.appendTo) {
-                dom.append(this._settings.appendTo, this._menuNode);
+            if (this._options.appendTo) {
+                $.append(this._options.appendTo, this._menuNode);
             } else {
-                dom.after(this._toggle, this._menuNode);
+                $.after(this._toggle, this._menuNode);
             }
 
-            this._popper = new UI.Popper(this._menuNode, this._popperOptions);
+            this._popper = new ui.Popper(this._menuNode, this._popperOptions);
 
-            dom.fadeIn(this._menuNode, {
-                duration: this._settings.duration
-            }).then(_ => {
-                dom.setAttribute(this._toggle, 'aria-expanded', true);
-                dom.triggerEvent(this._node, 'shown.ui.tagsinput');
-            }).catch(_ => { }).finally(_ => {
-                this._animating = false;
+            $.fadeIn(this._menuNode, {
+                duration: this._options.duration,
+            }).then((_) => {
+                $.removeDataset(this._menuNode, 'uiAnimating');
+                $.setAttribute(this._toggle, { 'aria-expanded': true });
+                $.triggerEvent(this._node, 'shown.ui.tagsinput');
+            }).catch((_) => {
+                if ($.getDataset(this._menuNode, 'uiAnimating') === 'in') {
+                    $.removeDataset(this._menuNode, 'uiAnimating');
+                }
             });
-
-            return this;
         }
 
         /**
          * Toggle the TagsInput.
-         * @returns {TagsInput} The TagsInput.
          */
         toggle() {
-            return dom.isConnected(this._menuNode) ?
-                this.hide() :
+            if ($.isConnected(this._menuNode)) {
+                this.hide();
+            } else {
                 this.show();
+            }
         }
 
         /**
          * Update the TagsInput position.
-         * @returns {TagsInput} The TagsInput.
          */
         update() {
             if (this._popper) {
                 this._popper.update();
             }
-
-            return this;
         }
-
     }
 
+    /**
+     * Add a value.
+     * @param {string} value The value to add.
+     */
+    function add(value) {
+        const newValues = this._value.concat([value]);
+        this._setValue(newValues, { triggerEvent: true });
+    }
+    /**
+     * Get the maximum selections.
+     * @return {number} The maximum selections.
+     */
+    function getMaxSelections() {
+        return this._maxSelections;
+    }
+    /**
+     * Get the placeholder text.
+     * @return {string} The placeholder text.
+     */
+    function getPlaceholder() {
+        return this._placeholderText;
+    }
+    /**
+     * Get the selected value(s).
+     * @return {string|number|array} The selected value(s).
+     */
+    function getValue() {
+        return this._value;
+    }
+    /**
+     * Remove a value.
+     * @param {string} value The value to remove.
+     */
+    function remove(value) {
+        const newValues = this._value.filter((val) => val != value);
+        this._setValue(newValues, { triggerEvent: true });
+    }
+    /**
+     * Remove all values.
+     */
+    function removeAll() {
+        this._setValue([], { triggerEvent: true });
+    }
+    /**
+     * Set the maximum selections.
+     * @param {number} maxSelections The maximum selections.
+     */
+    function setMaxSelections(maxSelections) {
+        this._maxSelections = maxSelections;
+
+        this.hide();
+        this._refresh();
+    }
+    /**
+     * Set the placeholder text.
+     * @param {string} placeholder The placeholder text.
+     */
+    function setPlaceholder(placeholder) {
+        this._placeholderText = placeholder;
+
+        $.remove(this._placeholder);
+        this._renderPlaceholder();
+        this._refresh();
+    }
+    /**
+     * Set the selected value(s).
+     * @param {string|number|array} value The value to set.
+     */
+    function setValue(value) {
+        this._setValue(value, { triggerEvent: true });
+    }
 
     /**
-     * TagsInput API
+     * Initialize preloaded get data.
      */
+    function _getDataInit() {
+        this._getData = ({ term = null }) => {
+            this._activeItems = [];
+            $.empty(this._menuNode);
+            $.setAttribute(this._toggle, { 'aria-activedescendent': '' });
+            $.setAttribute(this._searchInput, { 'aria-activedescendent': '' });
 
-    Object.assign(TagsInput.prototype, {
-
-        /**
-         * Add a value.
-         * @param {string} value The value to add.
-         * @returns {TagsInput} The TagsInput.
-         */
-        add(value) {
-            if (!dom.is(this._node, ':disabled')) {
-                if (this._settings.trimValue) {
-                    value = value.trim();
-                }
-
-                this._setValue(this._value.concat([value]), true);
+            // check for minimum search length
+            if (this._options.minSearch && (!term || term.length < this._options.minSearch)) {
+                $.hide(this._menuNode);
+                this.update();
+                return;
             }
 
-            return this;
-        },
+            $.show(this._menuNode);
 
-        /**
-         * Get the maximum selections.
-         * @returns {number} The maximum selections.
-         */
-        getMaxSelections() {
-            return this._maxSelections;
-        },
-
-        /**
-         * Get the placeholder text.
-         * @returns {string} The placeholder text.
-         */
-        getPlaceholder() {
-            return this._placeholderText;
-        },
-
-        /**
-         * Get the selected value(s).
-         * @returns {string|number|array} The selected value(s).
-         */
-        getValue() {
-            return this._value;
-        },
-
-        /**
-         * Remove a value.
-         * @param {string} value The value to remove.
-         * @returns {TagsInput} The TagsInput.
-         */
-        remove(value) {
-            if (!dom.is(this._node, ':disabled')) {
-                this._setValue(this._value.filter(val => val !== value), true);
+            // check for max selections
+            if (this._maxSelections && this._value.length >= this._maxSelections) {
+                const info = this._renderInfo(this._options.lang.maxSelections);
+                $.append(this._menuNode, info);
+                this.update();
+                return;
             }
 
-            return this;
-        },
+            let results = this._data;
 
-        /**
-         * Remove all values.
-         * @returns {TagsInput} The TagsInput.
-         */
-        removeAll() {
-            if (!dom.is(this._node, ':disabled')) {
-                this._setValue([], true);
+            if (term) {
+                const isMatch = this._options.isMatch.bind(this);
+                const sortResults = this._options.sortResults.bind(this);
+
+                // filter results
+                results = this._data
+                    .filter((data) => isMatch(data, term))
+                    .sort((a, b) => sortResults(a, b, term));
             }
 
-            return this;
-        },
-
-        /**
-         * Set the maximum selections.
-         * @param {number} maxSelections The maximum selections.
-         * @returns {TagsInput} The TagsInput.
-         */
-        setMaxSelections(maxSelections) {
-            this._maxSelections = maxSelections;
-
-            this.hide();
-            this._refresh();
-
-            return this;
-        },
-
-        /**
-         * Set the placeholder text.
-         * @param {string} placeholder The placeholder text.
-         * @returns {TagsInput} The TagsInput.
-         */
-        setPlaceholder(placeholder) {
-            this._placeholderText = placeholder;
-
-            dom.remove(this._placeholder);
-            this._renderPlaceholder();
-            this._refresh();
-
-            return this;
-        },
-
-        /**
-         * Set the selected value(s).
-         * @param {string|number|array} value The value to set.
-         * @returns {TagsInput} The TagsInput.
-         */
-        setValue(value) {
-            if (!dom.is(this._node, ':disabled')) {
-                this._setValue(value, true);
-            }
-
-            return this;
-        }
-
-    });
-
-
+            this._renderResults(results);
+            this.update();
+        };
+    }
     /**
-     * TagsInput Events
+     * Initialize get data from callback.
      */
+    function _getResultsInit() {
+        const load = $._debounce(({ offset, term }) => {
+            const options = { offset };
 
-    Object.assign(TagsInput.prototype, {
+            if (term) {
+                options.term = term;
+            }
 
-        /**
-         * Attach events for the TagsInput.
-         */
-        _events() {
-            dom.addEventDelegate(this._menuNode, 'contextmenu.ui.tagsinput', '[data-ui-action="select"]', e => {
-                // prevent menu node from showing right click menu
-                e.preventDefault();
-            });
+            const request = Promise.resolve(this._options.getResults(options));
 
-            dom.addEvent(this._menuNode, 'mousedown.ui.tagsinput', e => {
-                if (dom.isSame(this._input, e.target)) {
+            request.then((response) => {
+                if (this._request !== request) {
                     return;
                 }
 
-                // prevent search input from triggering blur event
-                e.preventDefault();
-            });
+                const newData = response.results;
 
-            dom.addEvent(this._menuNode, 'click.ui.tagsinput', e => {
-                // prevent menu node from closing modal
-                e.stopPropagation();
-            });
-
-            dom.addEvent(this._node, 'focus.ui.tagsinput', _ => {
-                if (!dom.isSame(this._node, document.activeElement)) {
-                    return;
-                }
-
-                dom.focus(this._input);
-            });
-
-            dom.addEventDelegate(this._itemsList, 'mouseup.ui.tagsinput', '[data-ui-action="select"]', e => {
-                e.preventDefault();
-
-                dom.setValue(this._input, '');
-                const value = dom.getDataset(e.currentTarget, 'uiValue');
-                this._selectValue(value);
-            });
-
-            dom.addEventDelegate(this._itemsList, 'mouseover.ui.tagsinput', '[data-ui-action="select"]', DOM.debounce(e => {
-                const focusedNode = dom.find('[data-ui-focus]', this._itemsList);
-                dom.removeClass(focusedNode, this.constructor.classes.focus);
-                dom.removeDataset(focusedNode, 'uiFocus');
-
-                dom.addClass(e.currentTarget, this.constructor.classes.focus);
-                dom.setDataset(e.currentTarget, 'uiFocus', true);
-            }));
-
-            dom.addEvent(this._input, 'focus.ui.tagsinput', _ => {
-                if (!dom.isSame(this._input, document.activeElement)) {
-                    return;
-                }
-
-                dom.hide(this._placeholder);
-                dom.detach(this._placeholder);
-                dom.addClass(this._toggle, 'focus');
-            });
-
-            let keepFocus = false;
-            dom.addEvent(this._input, 'blur.ui.tagsinput', _ => {
-                if (dom.isSame(this._input, document.activeElement)) {
-                    return;
-                }
-
-                if (keepFocus) {
-                    // prevent losing focus when toggle element is focused
-                    return;
-                }
-
-                const value = dom.getValue(this._input);
-
-                if (value) {
-                    if (this._settings.confirmOnBlur) {
-                        this.add(value);
-                    }
-
-                    if (this._settings.confirmOnBlur || this._settings.clearOnBlur) {
-                        dom.setValue(this._input, '');
-                    }
-                }
-
-                dom.removeClass(this._toggle, 'focus');
-                if (dom.isConnected(this._menuNode)) {
-                    dom.stop(this._menuNode);
-                    this._animating = false;
-
-                    this.hide();
+                if (!offset) {
+                    this._data = newData;
+                    $.empty(this._menuNode);
                 } else {
-                    this._refreshPlaceholder();
+                    this._data.push(...newData);
+                    $.detach(this._loader);
                 }
-            });
 
-            // debounced input event
-            const getDataDebounced = Core.debounce(term => {
-                this._getData({ term });
-            }, this._settings.debounceInput);
+                this._showMore = response.showMore;
 
-            dom.addEvent(this._input, 'input.ui.tagsinput', DOM.debounce(_ => {
-                this._updateSearchWidth();
+                this._renderResults(newData);
 
-                if (!this._getData) {
+                this._request = null;
+            }).catch((_) => {
+                if (this._request !== request) {
                     return;
                 }
 
+                $.detach(this._loader);
+                $.append(this._menuNode, this._error);
+
+                this._request = null;
+            }).finally((_) => {
+                this._loadingScroll = false;
+                this.update();
+            });
+
+            this._request = request;
+        }, this._options.debounce);
+
+        this._getData = ({ offset = 0, term = null }) => {
+            // cancel last request
+            if (this._request && this._request.cancel) {
+                this._request.cancel();
+            }
+
+            this._request = null;
+
+            if (!offset) {
+                this._activeItems = [];
+                $.setAttribute(this._toggle, { 'aria-activedescendent': '' });
+                $.setAttribute(this._searchInput, { 'aria-activedescendent': '' });
+
+                const children = $.children(this._menuNode, (node) => !$.isSame(node, this._loader));
+                $.detach(children);
+            } else {
+                $.detach(this._error);
+            }
+
+            // check for minimum search length
+            if (this._options.minSearch && (!term || term.length < this._options.minSearch)) {
+                $.hide(this._menuNode);
+                this.update();
+                return;
+            }
+
+            $.show(this._menuNode);
+
+            // check for max selections
+            if (this._maxSelections && this._value.length >= this._maxSelections) {
+                const info = this._renderInfo(this._options.lang.maxSelections);
+                $.append(this._menuNode, info);
+                this.update();
+                return;
+            }
+
+            const lastChild = $.child(this._menuNode, ':last-child');
+            if (!lastChild || !$.isSame(lastChild, this._loader)) {
+                $.append(this._menuNode, this._loader);
+            }
+
+            this.update();
+            load({ offset, term });
+        };
+    }
+
+    /**
+     * Attach events for the TagsInput.
+     */
+    function _events() {
+        $.addEventDelegate(this._menuNode, 'contextmenu.ui.tagsinput', '[data-ui-action="select"]', (e) => {
+            // prevent menu node from showing right click menu
+            e.preventDefault();
+        });
+
+        $.addEvent(this._menuNode, 'mousedown.ui.tagsinput', (e) => {
+            if ($.isSame(this._searchInput, e.target)) {
+                return;
+            }
+
+            // prevent search input from triggering blur event
+            e.preventDefault();
+        });
+
+        $.addEvent(this._menuNode, 'click.ui.tagsinput', (e) => {
+            // prevent menu node from closing modal
+            e.stopPropagation();
+        });
+
+        $.addEvent(this._node, 'focus.ui.tagsinput', (_) => {
+            if (!$.isSame(this._node, document.activeElement)) {
+                return;
+            }
+
+            $.focus(this._searchInput);
+        });
+
+        $.addEventDelegate(this._menuNode, 'click.ui.tagsinput', '[data-ui-action="select"]', (e) => {
+            e.preventDefault();
+
+            $.setDataset(this._searchInput, { uiKeepFocus: true });
+
+            const value = $.getDataset(e.currentTarget, 'uiValue');
+            this._selectValue(value);
+
+            $.removeDataset(this._searchInput, 'uiKeepFocus');
+        });
+
+        $.addEventDelegate(this._menuNode, 'mouseover.ui.tagsinput', '[data-ui-action="select"]', $.debounce((e) => {
+            const focusedNode = $.findOne('[data-ui-focus]', this._menuNode);
+            $.removeClass(focusedNode, this.constructor.classes.focus);
+            $.removeDataset(focusedNode, 'uiFocus');
+
+            $.addClass(e.currentTarget, this.constructor.classes.focus);
+            $.setDataset(e.currentTarget, { uiFocus: true });
+
+            const id = $.getAttribute(e.currentTarget, 'id');
+            $.setAttribute(this._toggle, { 'aria-activedescendent': id });
+            $.setAttribute(this._searchInput, { 'aria-activedescendent': id });
+        }));
+
+        $.addEvent(this._searchInput, 'input.ui.tagsinput', $.debounce((_) => {
+            this._updateSearchWidth();
+
+            if (!this._getData) {
+                return;
+            }
+
+            if (!$.isConnected(this._menuNode)) {
                 this.show();
+            } else {
+                const term = $.getValue(this._searchInput);
+                this._getData({ term });
+            }
+        }));
 
-                const term = dom.getValue(this._input);
-                getDataDebounced(term);
-            }));
+        $.addEvent(this._searchInput, 'keydown.ui.tagsinput', (e) => {
+            if (this._options.confirmKeys.includes(e.key)) {
+                e.preventDefault();
 
-            dom.addEvent(this._input, 'keydown.ui.tagsinput', e => {
-                if (this._settings.confirmKeys.includes(e.key)) {
+                $.setDataset(this._searchInput, { uiKeepFocus: true });
+
+                const value = $.getValue(this._searchInput);
+                this._selectValue(value);
+
+                $.removeDataset(this._searchInput, 'uiKeepFocus');
+
+                return;
+            }
+
+            if (e.code === 'Backspace') {
+                if (this._value.length && !$.getValue(this._searchInput)) {
                     e.preventDefault();
 
-                    const value = dom.getValue(this._input);
-                    this.add(value);
-                    dom.setValue(this._input, '');
-                    dom.focus(this._input);
-                    return;
+                    // remove the last selected item
+                    this._value.pop();
+
+                    $.setDataset(this._searchInput, { uiKeepFocus: true });
+
+                    this._refresh();
+                    $.setValue(this._searchInput, '');
+                    $.focus(this._searchInput);
+                    this._updateSearchWidth();
+
+                    // trigger input
+                    $.triggerEvent(this._searchInput, 'input.ui.tagsinput');
+
+                    $.removeDataset(this._searchInput, 'uiKeepFocus');
                 }
 
-                if (!['ArrowDown', 'ArrowUp', 'Backspace', 'Enter'].includes(e.code)) {
-                    return;
-                }
+                return;
+            }
 
-                if (e.code === 'Backspace') {
-                    if (this._value.length && !dom.getValue(this._input)) {
-                        e.preventDefault();
+            if (!['ArrowDown', 'ArrowUp', 'Enter', 'NumpadEnter'].includes(e.code)) {
+                return;
+            }
 
-                        // remove the last selected item
-                        this._value.pop();
+            if (!$.isConnected(this._menuNode)) {
+                this.show();
+                return;
+            }
 
-                        this._refresh();
-                        dom.setValue(this._input, '');
-                        dom.focus(this._input);
-                        this._updateSearchWidth();
+            const focusedNode = $.findOne('[data-ui-focus]', this._menuNode);
 
-                        // trigger input
-                        dom.triggerEvent(this._input, 'input.ui.tagsinput');
-                    }
-
-                    return;
-                }
-
-                if (!dom.isConnected(this._menuNode) && ['ArrowDown', 'ArrowUp'].includes(e.code)) {
-                    return this.show();
-                }
-
-                const focusedNode = dom.findOne('[data-ui-focus]', this._itemsList);
-
-                if (e.code === 'Enter') {
+            switch (e.code) {
+                case 'Enter':
+                case 'NumpadEnter':
                     let value;
                     if (focusedNode) {
                         // select the focused item
-                        value = dom.getDataset(focusedNode, 'uiValue');
-                        dom.setValue(this._input, '');
+                        value = $.getDataset(focusedNode, 'uiValue');
+                        $.setValue(this._searchInput, '');
                     } else {
-                        value = dom.getValue(this._input);
+                        value = $.getValue(this._searchInput);
                     }
 
-                    this.add(value);
-                    dom.setValue(this._input, '');
-                    dom.focus(this._input);
+                    $.setDataset(this._searchInput, { uiKeepFocus: true });
+
+                    this._selectValue(value);
+
+                    $.removeDataset(this._searchInput, 'uiKeepFocus');
 
                     return;
-                }
-
-                // focus the previous/next item
-
-                let focusNode;
-                if (!focusedNode) {
-                    focusNode = dom.findOne('[data-ui-action="select"]', this._itemsList);
-                } else {
-                    switch (e.code) {
-                        case 'ArrowDown':
-                            focusNode = dom.nextAll(focusedNode, '[data-ui-action="select"]').shift();
-                            break;
-                        case 'ArrowUp':
-                            focusNode = dom.prevAll(focusedNode, '[data-ui-action="select"]').pop();
-                            break;
-                    }
-                }
-
-                if (!focusNode) {
-                    return;
-                }
-
-                dom.removeClass(focusedNode, this.constructor.classes.focus);
-                dom.removeDataset(focusedNode, 'uiFocus');
-                dom.addClass(focusNode, this.constructor.classes.focus);
-                dom.setDataset(focusNode, 'uiFocus', true);
-
-                const itemsScrollY = dom.getScrollY(this._itemsList);
-                const itemsRect = dom.rect(this._itemsList, true);
-                const nodeRect = dom.rect(focusNode, true);
-
-                if (nodeRect.top < itemsRect.top) {
-                    dom.setScrollY(this._itemsList, itemsScrollY + nodeRect.top - itemsRect.top);
-                } else if (nodeRect.bottom > itemsRect.bottom) {
-                    dom.setScrollY(this._itemsList, itemsScrollY + nodeRect.bottom - itemsRect.bottom);
-                }
-            });
-
-            dom.addEvent(this._input, 'keyup.ui.tagsinput', e => {
-                if (e.code !== 'Escape' || !dom.isConnected(this._menuNode)) {
-                    return;
-                }
-
-                e.stopPropagation();
-
-                // close the menu
-                this.hide();
-
-                dom.blur(this._input);
-                dom.focus(this._input);
-            });
-
-            if (this._settings.getResults) {
-                // infinite scrolling event
-                dom.addEvent(this._itemsList, 'scroll.ui.tagsinput', Core.throttle(_ => {
-                    if (this._request || !this._showMore) {
-                        return;
-                    }
-
-                    const height = dom.height(this._itemsList);
-                    const scrollHeight = dom.height(this._itemsList, DOM.SCROLL_BOX);
-                    const scrollTop = dom.getScrollY(this._itemsList);
-
-                    if (scrollTop >= scrollHeight - height - (height / 4)) {
-                        const term = dom.getValue(this._input);
-                        const offset = this._data.length;
-
-                        this._getData({ term, offset });
-                    }
-                }, 250, false));
             }
 
-            dom.addEvent(this._toggle, 'mousedown.ui.tagsinput', e => {
-                if (dom.is(e.target, '[data-ui-action="clear"]')) {
-                    e.preventDefault();
-                    return;
-                }
+            // focus the previous/next item
 
-                if (dom.hasClass(this._toggle, 'focus')) {
-                    // maintain focus when toggle element is already focused
-                    keepFocus = true;
-                } else {
-                    dom.hide(this._placeholder);
-                    dom.addClass(this._toggle, 'focus');
-                }
-
-                dom.addEventOnce(window, 'mouseup.ui.tagsinput', _ => {
-                    keepFocus = false;
-                    dom.focus(this._input);
-
-                    if (!e.button) {
-                        this.show();
-                    }
-                });
-            });
-
-            dom.addEventDelegate(this._toggle, 'click.ui.tagsinput', '[data-ui-action="clear"]', e => {
-                if (e.button) {
-                    return;
-                }
-
-                // remove selection
-                const element = dom.parent(e.currentTarget);
-                const index = dom.index(element);
-                const value = this._value.slice();
-                value.splice(index, 1)
-                this._setValue(value, true);
-                dom.focus(this._input);
-            });
-        }
-
-    });
-
-
-    /**
-     * TagsInput Helpers
-     */
-
-    Object.assign(TagsInput.prototype, {
-
-        /**
-         * Retrieve data for a value.
-         * @param {string|number} value The value to retrieve data for.
-         * @returns {object} The data.
-         */
-        _findValue(value) {
-            if (!value) {
-                return null;
-            }
-
-            for (const item of this._data) {
-                if (item.value === value) {
-                    return item;
-                }
-            }
-
-            return {
-                value,
-                element: this.constructor._buildOption(value)
-            };
-        },
-
-        /**
-         * Refresh the selected value(s).
-         */
-        _refresh() {
-            if (!this._value) {
-                this._value = [];
-            }
-
-            // check max selections
-            if (this._maxSelections && this._value.length > this._maxSelections) {
-                this._value = this._value.slice(0, this._maxSelections);
-            }
-
-            this._value = Core.unique(this._value);
-
-            // prevent events from being removed
-            dom.detach(this._input);
-
-            dom.empty(this._node);
-            dom.empty(this._toggle);
-
-            this._refreshDisabled();
-            this._refreshPlaceholder();
-
-            // add values
-            if (this._value.length) {
-                for (const value of this._value) {
-                    const item = this._findValue(value);
-                    dom.append(this._node, item.element);
-
-                    const group = this._renderSelection(item);
-                    dom.append(this._toggle, group);
-                }
-            }
-
-            dom.append(this._toggle, this._input);
-        },
-
-        /**
-         * Refresh the toggle disabled class.
-         */
-        _refreshDisabled() {
-            const element = this._input;
-
-            if (dom.is(this._node, ':disabled')) {
-                dom.addClass(this._toggle, this.constructor.classes.disabled);
-                dom.setAttribute(element, 'tabindex', '-1');
+            let focusNode;
+            if (!focusedNode) {
+                focusNode = this._activeItems[0];
             } else {
-                dom.removeClass(this._toggle, this.constructor.classes.disabled);
-                dom.removeAttribute(element, 'tabindex');
-            }
+                let focusIndex = this._activeItems.indexOf(focusedNode);
 
-            if (dom.hasAttribute(this._node, 'readonly')) {
-                dom.addClass(this._toggle, this.constructor.classes.readonly);
-            }
-        },
-
-        /**
-         * Refresh the placeholder.
-         */
-        _refreshPlaceholder() {
-            if (this._value.length) {
-                dom.hide(this._placeholder);
-            } else {
-                dom.show(this._placeholder);
-                dom.prepend(this._toggle, this._placeholder);
-            }
-        },
-
-        /**
-         * Select a value (from DOM event).
-         * @param {string|number} value The value to select.
-         */
-        _selectValue(value) {
-            // check item has been loaded
-            const item = this._findValue(value);
-
-            if (!item) {
-                return this._refresh();
-            }
-
-            // get actual value from item
-            value = item.value;
-            value = this._value.concat([value]);
-
-            this._setValue(value, true);
-
-            if (this._settings.closeOnSelect) {
-                this.hide();
-            } else if (this._getData) {
-                this._getData({});
-            }
-
-            this._refreshPlaceholder();
-            dom.setValue(this._input, '');
-            dom.focus(this._input);
-        },
-
-        /**
-         * Select the selected value(s).
-         * @param {string|number} value The value to select.
-         * @param {Boolean} [triggerEvent] Whether to trigger the change event.
-         */
-        _setValue(value, triggerEvent = false) {
-            value = value.filter(this._settings.validTag);
-
-            if (this._value && value.length === this._value.length && value.every((val, index) => val === this._value[index])) {
-                return;
-            }
-
-            this._value = value;
-            this._refresh();
-
-            if (triggerEvent) {
-                dom.triggerEvent(this._node, 'change.ui.tagsinput');
-            }
-        },
-
-        /**
-         * Update the search input width.
-         */
-        _updateSearchWidth() {
-            const span = dom.create('span', {
-                text: dom.getValue(this._input),
-                style: {
-                    display: 'inline-block',
-                    fontSize: dom.css(this._input, 'fontSize'),
-                    whiteSpace: 'pre-wrap'
-                }
-            });
-            dom.append(document.body, span);
-
-            const width = dom.width(span);
-            dom.setStyle(this._input, 'width', width + 2);
-            dom.remove(span);
-        }
-
-    });
-
-
-    /**
-     * TagsInput Init
-     */
-
-    Object.assign(TagsInput.prototype, {
-
-        /**
-         * Initialize preloaded get data.
-         */
-        _getDataInit() {
-            this._getData = ({ term = null }) => {
-                dom.empty(this._itemsList);
-
-                // check for minimum search length
-                if (this._settings.minSearch && (!term || term.length < this._settings.minSearch)) {
-                    return this.update();
+                switch (e.code) {
+                    case 'ArrowDown':
+                        focusIndex++;
+                        break;
+                    case 'ArrowUp':
+                        focusIndex--;
+                        break;
                 }
 
-                // check for max selections
-                if (this._maxSelections && this._value.length >= this._maxSelections) {
-                    return this._renderInfo(this._settings.lang.maxSelections);
-                }
-
-                // filter results
-                const results = this._settings.sortResults(this._data, term)
-                    .filter(item => this._settings.isMatch(item.value, term));
-
-                this._renderResults(results);
-                this.update();
-            };
-        },
-
-        /**
-         * Initialize get data from callback.
-         */
-        _getResultsInit() {
-            this._getData = ({ offset = 0, term = null }) => {
-
-                // cancel last request
-                if (this._request && this._request.cancel) {
-                    this._request.cancel();
-                    this._request = null;
-                }
-
-                if (!offset) {
-                    dom.empty(this._itemsList);
-                }
-
-                // check for minimum search length
-                if (this._settings.minSearch && (!term || term.length < this._settings.minSearch)) {
-                    return this.update();
-                }
-
-                // check for max selections
-                if (this._maxSelections && this._value.length >= this._maxSelections) {
-                    return this._renderInfo(this._settings.lang.maxSelections);
-                }
-
-                const options = { offset };
-
-                if (term) {
-                    options.term = term;
-                }
-
-                const loading = this._renderInfo(this._settings.lang.loading);
-                const request = this._getResults(options);
-
-                request.then(response => {
-                    this._renderResults(response.results);
-                }).catch(_ => {
-                    // error
-                }).finally(_ => {
-                    dom.remove(loading);
-                    this.update();
-
-                    if (this._request === request) {
-                        this._request = null;
-                    }
-                });
-            };
-        },
-
-        /**
-         * Initialize get data callback.
-         */
-        _getResultsCallbackInit() {
-            this._getResults = options => {
-                // reset data for starting offset
-                if (!options.offset) {
-                    this._data = [];
-                }
-
-                const request = this._settings.getResults(options);
-                this._request = Promise.resolve(request);
-
-                this._request.then(response => {
-                    const newData = this.constructor._parseData(response.results);
-                    this._data.push(...newData);
-                    this._showMore = response.showMore;
-
-                    response.results = response.results.map(value => ({ value }));
-
-                    return response;
-                });
-
-                return this._request;
-            };
-        }
-
-    });
-
-
-    /**
-     * TagsInput Render
-     */
-
-    Object.assign(TagsInput.prototype, {
-
-        /**
-         * Render the toggle element.
-         */
-        _render() {
-            this._renderToggle();
-            this._renderPlaceholder();
-            this._renderMenu();
-
-            // hide the input node
-            dom.addClass(this._node, this.constructor.classes.hide);
-            dom.setAttribute(this._node, 'tabindex', '-1');
-
-            dom.after(this._node, this._toggle);
-        },
-
-        /**
-         * Render an information item.
-         * @param {string} text The text to render.
-         * @returns {HTMLElement} The information element.
-         */
-        _renderInfo(text) {
-            const element = dom.create('button', {
-                html: this._settings.sanitize(text),
-                class: this.constructor.classes.info,
-                attributes: {
-                    type: 'button'
-                }
-            });
-            dom.append(this._itemsList, element);
-            this.update();
-            return element;
-        },
-
-        /**
-         * Render an item.
-         * @param {object} item The item to render.
-         * @returns {HTMLElement} The item element.
-         */
-        _renderItem(item) {
-            const active = this._value.some(value => value == item.value);
-
-            const element = dom.create('div', {
-                html: this._settings.sanitize(
-                    this._settings.renderResult(item.value, active)
-                ),
-                class: this.constructor.classes.item
-            });
-
-            if (active) {
-                dom.addClass(element, this.constructor.classes.active);
-                dom.setDataset(element, 'uiActive', true);
+                focusNode = this._activeItems[focusIndex];
             }
-
-            if (item.disabled) {
-                dom.addClass(element, this.constructor.classes.disabledItem);
-            } else {
-                dom.addClass(element, this.constructor.classes.action)
-                dom.setDataset(element, {
-                    uiAction: 'select',
-                    uiValue: item.value
-                });
-            }
-
-            return element;
-        },
-
-        /**
-         * Render the menu.
-         */
-        _renderMenu() {
-            this._menuNode = dom.create('div', {
-                class: this.constructor.classes.menu
-            });
-
-            this._itemsList = dom.create('div', {
-                class: this.constructor.classes.items
-            });
-            dom.append(this._menuNode, this._itemsList);
-
-            this._popperOptions = {
-                reference: this._toggle,
-                placement: this._settings.placement,
-                position: this._settings.position,
-                fixed: this._settings.fixed,
-                spacing: this._settings.spacing,
-                minContact: this._settings.minContact
-            };
-
-            if (this._settings.fullWidth) {
-                this._popperOptions.afterUpdate = (node, reference) => {
-                    const width = dom.width(reference, DOM.BORDER_BOX);
-                    dom.setStyle(node, 'width', width);
-                };
-
-                this._popperOptions.beforeUpdate = node => {
-                    dom.setStyle(node, 'width', '');
-                };
-            }
-        },
-
-        /**
-         * Render the placeholder.
-         */
-        _renderPlaceholder() {
-            this._placeholder = dom.create('span', {
-                html: this._placeholderText ?
-                    this._settings.sanitize(this._placeholderText) :
-                    '&nbsp;',
-                class: this.constructor.classes.placeholder
-            });
-        },
-
-        /**
-         * Render results.
-         * @param {array} results The results to render.
-         */
-        _renderResults(results) {
-            if (!results.length) {
-                return this._renderInfo(this._settings.lang.noResults);
-            }
-
-            for (const item of results) {
-                const element = this._renderItem(item);
-                dom.append(this._itemsList, element);
-            }
-
-            const focusedNode = dom.findOne('[data-ui-focus]', this._itemsList);
-
-            if (focusedNode) {
-                return;
-            }
-
-            let focusNode = dom.findOne('[data-ui-active]', this._itemsList);
 
             if (!focusNode) {
-                focusNode = dom.findOne('[data-ui-action="select"]', this._itemsList);
+                return;
             }
 
-            if (focusNode) {
-                dom.addClass(focusNode, this.constructor.classes.focus);
-                dom.setDataset(focusNode, 'uiFocus', true);
+            $.removeClass(focusedNode, this.constructor.classes.focus);
+            $.removeDataset(focusedNode, 'uiFocus');
+            $.addClass(focusNode, this.constructor.classes.focus);
+            $.setDataset(focusNode, { uiFocus: true });
+
+            const id = $.getAttribute(focusNode, 'id');
+            $.setAttribute(this._toggle, { 'aria-activedescendent': id });
+            $.setAttribute(this._searchInput, { 'aria-activedescendent': id });
+
+            const itemsScrollY = $.getScrollY(this._menuNode);
+            const itemsRect = $.rect(this._menuNode, { offset: true });
+            const nodeRect = $.rect(focusNode, { offset: true });
+
+            if (nodeRect.top < itemsRect.top) {
+                $.setScrollY(this._menuNode, itemsScrollY + nodeRect.top - itemsRect.top);
+            } else if (nodeRect.bottom > itemsRect.bottom) {
+                $.setScrollY(this._menuNode, itemsScrollY + nodeRect.bottom - itemsRect.bottom);
             }
-        },
+        });
 
-        /**
-         * Render a selection item.
-         * @param {object} item The item to render.
-         * @returns {HTMLElement} The selection element.
-         */
-        _renderSelection(item) {
-            const group = dom.create('div', {
-                class: this.constructor.classes.tagGroup
-            });
-
-            const content = this._settings.renderSelection(item.value);
-            const tag = dom.create('div', {
-                html: this._settings.sanitize(content),
-                class: this.constructor.classes.tagItem
-            });
-            dom.append(group, tag);
-
-            if (this._settings.showClear) {
-                const close = dom.create('div', {
-                    html: `<span class="${this.constructor.classes.tagClearIcon}"></span>`,
-                    class: this.constructor.classes.tagClear,
-                    dataset: {
-                        uiAction: 'clear'
-                    }
-                });
-                dom.append(group, close);
+        $.addEvent(this._searchInput, 'keyup.ui.tagsinput', (e) => {
+            if (e.code !== 'Escape' || !$.isConnected(this._menuNode)) {
+                return;
             }
 
-            return group;
-        },
+            e.stopPropagation();
 
-        /**
-         * Render the toggle element.
-         */
-        _renderToggle() {
-            this._toggle = dom.create('div', {
-                class: [
-                    dom.getAttribute(this._node, 'class') || '',
-                    this.constructor.classes.tagToggle
-                ]
-            });
+            // close the menu
+            this.hide();
 
-            this._input = dom.create('input', {
-                class: this.constructor.classes.tagInput,
-                attributes: {
-                    autocomplete: 'off'
+            $.blur(this._searchInput);
+            $.focus(this._searchInput);
+        });
+
+        if (this._options.getResults) {
+            // infinite scrolling event
+            $.addEvent(this._menuNode, 'scroll.ui.tagsinput', $._throttle((_) => {
+                if (this._request || !this._showMore) {
+                    return;
                 }
-            });
+
+                const height = $.height(this._menuNode);
+                const scrollHeight = $.height(this._menuNode, { boxSize: $.SCROLL_BOX });
+                const scrollTop = $.getScrollY(this._menuNode);
+
+                if (scrollTop >= scrollHeight - height - (height / 4)) {
+                    const term = $.getValue(this._searchInput);
+                    const offset = this._data.length;
+
+                    this._loadingScroll = true;
+                    this._getData({ term, offset });
+                }
+            }, 250, { leading: false }));
         }
 
-    });
+        $.addEvent(this._searchInput, 'focus.ui.tagsinput', (_) => {
+            if (!$.isSame(this._searchInput, document.activeElement)) {
+                return;
+            }
 
+            $.hide(this._placeholder);
+            $.detach(this._placeholder);
+            $.addClass(this._toggle, 'focus');
+        });
+
+        $.addEvent(this._searchInput, 'blur.ui.tagsinput', (_) => {
+            if ($.isSame(this._searchInput, document.activeElement)) {
+                return;
+            }
+
+            if ($.getDataset(this._searchInput, 'uiKeepFocus')) {
+                // prevent losing focus when toggle element is focused
+                return;
+            }
+
+            const value = $.getValue(this._searchInput);
+
+            if (value) {
+                if (this._options.confirmOnBlur) {
+                    this._selectValue(value, { focus: false });
+                } else if (this._options.clearOnBlur) {
+                    $.setValue(this._searchInput, '');
+                }
+            }
+
+            $.removeClass(this._toggle, 'focus');
+
+            if (!$.isConnected(this._menuNode)) {
+                this._refreshPlaceholder();
+                return;
+            }
+
+            if ($.getDataset(this._menuNode, 'uiAnimating') === 'out') {
+                return;
+            }
+
+            $.stop(this._menuNode);
+            $.removeDataset(this._menuNode, 'uiAnimating');
+
+            this.hide();
+        });
+
+        $.addEvent(this._toggle, 'mousedown.ui.tagsinput', (e) => {
+            if ($.is(e.target, '[data-ui-action="clear"]')) {
+                e.preventDefault();
+                return;
+            }
+
+            if ($.hasClass(this._toggle, 'focus')) {
+                // maintain focus when toggle element is already focused
+                $.setDataset(this._searchInput, { uiKeepFocus: true });
+            } else {
+                $.hide(this._placeholder);
+                $.addClass(this._toggle, 'focus');
+            }
+
+            $.addEventOnce(window, 'mouseup.ui.tagsinput', (_) => {
+                $.removeDataset(this._searchInput, 'uiKeepFocus');
+                $.focus(this._searchInput);
+
+                if (!e.button) {
+                    this.show();
+                }
+            });
+        });
+
+        $.addEventDelegate(this._toggle, 'click.ui.tagsinput', '[data-ui-action="clear"]', (e) => {
+            if (e.button) {
+                return;
+            }
+
+            e.stopPropagation();
+
+            // remove selection
+            const element = $.parent(e.currentTarget);
+            const index = $.index(element);
+            const value = this._value.slice();
+            value.splice(index, 1);
+            this._setValue(value, { triggerEvent: true });
+            $.focus(this._searchInput);
+        });
+    }
 
     /**
-     * TagsInput (Static) Helpers
+     * Refresh the selected value(s).
      */
-
-    Object.assign(TagsInput, {
-
-        /**
-         * Build an option element for a value.
-         * @param {string} value The value to use.
-         * @returns {HTMLElement} The option element.
-         */
-        _buildOption(value) {
-            return dom.create('option', {
-                value,
-                properties: {
-                    selected: true
-                }
-            });
-        },
-
-        /**
-         * Add option elements to data.
-         * @param {array} data The data to parse.
-         * @returns {array} The parsed data.
-         */
-        _parseData(data) {
-            return data.map(value => ({
-                value,
-                element: this._buildOption(value)
-            }))
+    function _refresh() {
+        if (!this._value) {
+            this._value = [];
         }
 
-    });
+        // check max selections
+        if (this._maxSelections && this._value.length > this._maxSelections) {
+            this._value = this._value.slice(0, this._maxSelections);
+        }
 
+        this._value = $._unique(this._value);
+
+        // prevent events from being removed
+        $.detach(this._searchInput);
+
+        $.empty(this._node);
+        $.empty(this._toggle);
+
+        this._refreshDisabled();
+        this._refreshPlaceholder();
+
+        // add values
+        for (const value of this._value) {
+            const element = this._buildOption(value);
+            $.append(this._node, element);
+
+            const group = this._renderSelection(value);
+            $.append(this._toggle, group);
+        }
+
+        $.append(this._toggle, this._searchInput);
+    }
+    /**
+     * Refresh the toggle disabled class.
+     */
+    function _refreshDisabled() {
+        const disabled = $.is(this._node, ':disabled');
+
+        if (disabled) {
+            $.addClass(this._toggle, this.constructor.classes.disabled);
+            $.setAttribute(this._searchInput, { tabindex: -1 });
+        } else {
+            $.removeClass(this._toggle, this.constructor.classes.disabled);
+            $.removeAttribute(this._searchInput, 'tabindex');
+        }
+
+        $.setAttribute(this._toggle, { 'aria-disabled': disabled });
+    }
+    /**
+     * Refresh the placeholder.
+     */
+    function _refreshPlaceholder() {
+        if (this._value.length) {
+            $.hide(this._placeholder);
+        } else {
+            $.show(this._placeholder);
+            $.prepend(this._toggle, this._placeholder);
+        }
+    }
+    /**
+     * Select a value (from DOM event).
+     * @param {string|number} value The value to select.
+     * @param {object} [options] Options for selecting the value(s).
+     * @param {Boolean} [options.focus] Whether to focus the search input.
+     */
+    function _selectValue(value, { focus = true } = {}) {
+        if (this._options.trimValue) {
+            value = value.trim();
+        }
+
+        if (!this._value.some((otherValue) => otherValue == value)) {
+            const newValue = this._value.concat([value]);
+
+            this._setValue(newValue, { triggerEvent: true });
+
+            this._refreshPlaceholder();
+        }
+
+        $.setValue(this._searchInput, '');
+
+        if (this._options.closeOnSelect) {
+            this.hide();
+        } else if (this._getData) {
+            this._getData({});
+        }
+
+        if (focus) {
+            $.focus(this._searchInput);
+        }
+    }
+    /**
+     * Select the selected value(s).
+     * @param {string|number} value The value to select.
+     * @param {object} [options] Options for setting the value(s).
+     * @param {Boolean} [options.triggerEvent] Whether to trigger the change event.
+     */
+    function _setValue(value, { triggerEvent = false } = {}) {
+        value = value.filter(this._options.validTag);
+
+        const valueChanged =
+            !this._value ||
+            value.length !== this._value.length ||
+            value.some((val, index) => val !== this._value[index]);
+
+        if (!valueChanged) {
+            return;
+        }
+
+        this._value = value;
+        this._refresh();
+
+        if (triggerEvent) {
+            $.triggerEvent(this._node, 'change.ui.tagsinput');
+        }
+    }
+    /**
+     * Update the search input width.
+     */
+    function _updateSearchWidth() {
+        const span = $.create('span', {
+            text: $.getValue(this._searchInput),
+            style: {
+                display: 'inline-block',
+                fontSize: $.css(this._searchInput, 'fontSize'),
+                whiteSpace: 'pre-wrap',
+            },
+        });
+        $.append(document.body, span);
+
+        const width = $.width(span);
+        $.setStyle(this._searchInput, { width: width + 2 });
+        $.remove(span);
+    }
+
+    /**
+     * Build an option element for a value.
+     * @param {string} value The value to use.
+     * @return {HTMLElement} The option element.
+     */
+    function _buildOption(value) {
+        if (!(value in this._optionLookup)) {
+            this._optionLookup[value] = $.create('option', {
+                text: value,
+                value: value,
+                properties: {
+                    selected: true,
+                },
+            });
+        }
+
+        return this._optionLookup[value];
+    }
+    /**
+     * Build a data array from a DOM element.
+     * @param {HTMLElement} element The element to parse.
+     * @return {array} The parsed data.
+     */
+    function _getDataFromDOM(element) {
+        return $.children(element).map((child) => $.getValue(child));
+    }
+
+    /**
+     * Render the toggle element.
+     */
+    function _render() {
+        this._renderPlaceholder();
+        this._renderMenu();
+        this._renderToggle();
+
+        if (this._options.getResults) {
+            this._loader = this._renderInfo(this._options.lang.loading);
+            this._error = this._renderInfo(this._options.lang.error);
+        }
+
+        this._popperOptions = {
+            reference: this._toggle,
+            placement: this._options.placement,
+            position: this._options.position,
+            fixed: this._options.fixed,
+            spacing: this._options.spacing,
+            minContact: this._options.minContact,
+        };
+
+        if (this._options.fullWidth) {
+            this._popperOptions.afterUpdate = (node, reference) => {
+                const width = $.width(reference, $.BORDER_BOX);
+                $.setStyle(node, { width: `${width}px` });
+            };
+
+            this._popperOptions.beforeUpdate = (node) => {
+                $.setStyle(node, { width: '' });
+            };
+        }
+
+        // hide the input node
+        $.addClass(this._node, this.constructor.classes.hide);
+        $.setAttribute(this._node, { tabindex: -1 });
+
+        $.after(this._node, this._toggle);
+    }
+    /**
+     * Render an information item.
+     * @param {string} text The text to render.
+     * @return {HTMLElement} The information element.
+     */
+    function _renderInfo(text) {
+        const element = $.create('li', {
+            html: this._options.sanitize(text),
+            class: this.constructor.classes.info,
+        });
+
+        return element;
+    }
+    /**
+     * Render an item.
+     * @param {string} value The value to render.
+     * @return {HTMLElement} The item element.
+     */
+    function _renderItem(value) {
+        const id = ui.generateId('autocomplete-item');
+
+        const active = this._value.some((otherValue) => otherValue == value);
+
+        const element = $.create('li', {
+            class: this.constructor.classes.item,
+            attributes: {
+                id,
+                'role': 'option',
+                'aria-label': value,
+                'aria-selected': active,
+            },
+            dataset: {
+                uiAction: 'select',
+                uiValue: value,
+            },
+        });
+
+        this._activeItems.push(element);
+
+        if (active) {
+            $.addClass(element, this.constructor.classes.active);
+            $.setDataset(element, { uiActive: true });
+        }
+
+        const content = this._options.renderResult.bind(this)(value, element);
+
+        if ($._isString(content)) {
+            $.setHTML(element, this._options.sanitize(content));
+        } else if ($._isElement(content) && !$.isSame(element, content)) {
+            $.append(element, content);
+        }
+
+        return element;
+    }
+    /**
+     * Render the menu.
+     */
+    function _renderMenu() {
+        const id = ui.generateId('selectmenu');
+
+        this._menuNode = $.create('ul', {
+            class: this.constructor.classes.menu,
+            style: { maxHeight: this._options.maxHeight },
+            attributes: {
+                id,
+                'role': 'listbox',
+                'aria-multiselectable': true,
+            },
+        });
+
+        if ($.is(this._node, '.input-sm')) {
+            $.addClass(this._menuNode, this.constructor.classes.menuSmall);
+        } else if ($.is(this._node, '.input-lg')) {
+            $.addClass(this._menuNode, this.constructor.classes.menuLarge);
+        }
+    }
+    /**
+     * Render the placeholder.
+     */
+    function _renderPlaceholder() {
+        this._placeholder = $.create('span', {
+            html: this._placeholderText ?
+                this._options.sanitize(this._placeholderText) :
+                '&nbsp;',
+            class: this.constructor.classes.placeholder,
+        });
+    }
+    /**
+     * Render results.
+     * @param {array} results The results to render.
+     */
+    function _renderResults(results) {
+        $.show(this._menuNode);
+
+        for (const value of results) {
+            const element = this._renderItem(value);
+            $.append(this._menuNode, element);
+        }
+
+        if (!$.hasChildren(this._menuNode)) {
+            $.hide(this._menuNode);
+            return;
+        }
+
+        const focusedNode = $.findOne('[data-ui-focus]', this._menuNode);
+
+        if (!focusedNode && this._activeItems.length) {
+            const element = this._activeItems[0];
+
+            $.addClass(element, this.constructor.classes.focus);
+            $.setDataset(element, { uiFocus: true });
+
+            const id = $.getAttribute(element, 'id');
+            $.setAttribute(this._toggle, { 'aria-activedescendent': id });
+            $.setAttribute(this._searchInput, { 'aria-activedescendent': id });
+        }
+    }
+    /**
+     * Render a selection item.
+     * @param {object} value The value to render.
+     * @return {HTMLElement} The selection element.
+     */
+    function _renderSelection(value) {
+        const group = $.create('div', {
+            class: this.constructor.classes.tagGroup,
+        });
+
+        const element = $.create('div', {
+            class: this.constructor.classes.tagItem,
+        });
+
+        const content = this._options.renderSelection.bind(this)(value, element);
+
+        if ($._isString(content)) {
+            $.setHTML(element, this._options.sanitize(content));
+        } else if ($._isElement(content) && !$.isSame(element, content)) {
+            $.append(element, content);
+        }
+
+        if (this._options.showClear) {
+            const closeBtn = $.create('div', {
+                class: this.constructor.classes.tagClear,
+                attributes: {
+                    'role': 'button',
+                    'aria-label': this._options.lang.clear,
+                },
+                dataset: {
+                    uiAction: 'clear',
+                },
+            });
+
+            $.append(group, closeBtn);
+
+            const closeIcon = $.create('small', {
+                class: this.constructor.classes.tagClearIcon,
+            });
+
+            $.append(closeBtn, closeIcon);
+        }
+
+        $.append(group, element);
+
+        return group;
+    }
+    /**
+     * Render the toggle element.
+     */
+    function _renderToggle() {
+        const id = $.getAttribute(this._menuNode, 'id');
+
+        this._toggle = $.create('div', {
+            class: [
+                $.getAttribute(this._node, 'class') || '',
+                this.constructor.classes.tagToggle,
+            ],
+            attributes: {
+                'role': 'combobox',
+                'aria-haspopup': 'listbox',
+                'aria-expanded': false,
+                'aria-disabled': false,
+                'aria-controls': id,
+                'aria-activedescendent': '',
+            },
+        });
+
+        this._searchInput = $.create('input', {
+            class: this.constructor.classes.tagInput,
+            attributes: {
+                'role': 'searchbox',
+                'aria-autocomplete': 'list',
+                'aria-label': this._options.lang.search,
+                'aria-describedby': id,
+                'aria-activedescendent': '',
+                'autocomplete': 'off',
+            },
+        });
+    }
 
     // TagsInput default options
     TagsInput.defaults = {
         placeholder: '',
         lang: {
+            clear: 'Remove selection',
+            error: 'Error loading data.',
             loading: 'Loading..',
             maxSelections: 'Selection limit reached.',
-            noResults: 'No results'
+            search: 'Search',
         },
         data: null,
         getResults: null,
-        isMatch: (value, term) => {
-            const normalized = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-            const escapedTerm = Core.escapeRegExp(term);
+        renderResult: (value) => value,
+        renderSelection: (value) => value,
+        sanitize: (input) => $.sanitize(input),
+        isMatch(value, term) {
+            const escapedTerm = $._escapeRegExp(term);
             const regExp = new RegExp(escapedTerm, 'i');
 
-            return regExp.test(value) || regExp.test(normalized);
+            if (regExp.test(value)) {
+                return true;
+            }
+
+            const normalized = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+            return regExp.test(normalized);
         },
-        renderResult: value => value,
-        renderSelection: value => value,
-        sanitize: input => dom.sanitize(input),
-        sortResults: (results, term) => results.sort((a, b) => {
-            const aLower = a.value.toLowerCase();
-            const bLower = b.value.toLowerCase();
+        sortResults(a, b, term) {
+            const aLower = a.toLowerCase();
+            const bLower = b.toLowerCase();
 
             if (term) {
                 const diff = aLower.indexOf(term) - bLower.indexOf(term);
@@ -1178,8 +1154,8 @@
             }
 
             return aLower.localeCompare(bLower);
-        }),
-        validTag: value => !!value,
+        },
+        validTag: (value) => !!value,
         maxSelections: 0,
         minSearch: 1,
         confirmKeys: [',', ' '],
@@ -1187,41 +1163,76 @@
         clearOnBlur: true,
         showClear: true,
         closeOnSelect: true,
-        debounceInput: 250,
+        debounce: 250,
         duration: 100,
+        maxHeight: '250px',
         appendTo: null,
         fullWidth: false,
         placement: 'bottom',
         position: 'start',
         fixed: false,
         spacing: 0,
-        minContact: false
+        minContact: false,
     };
 
     // Default classes
     TagsInput.classes = {
-        action: 'tagsinput-action',
-        active: 'tagsinput-active',
+        // action: 'tagsinput-action',
+        active: 'active',
         disabled: 'disabled',
-        disabledItem: 'tagsinput-disabled',
-        focus: 'tagsinput-focus',
+        disabledItem: 'disabled',
+        focus: 'focus',
         hide: 'visually-hidden',
-        info: 'tagsinput-item text-secondary',
+        info: 'tagsinput-item text-body-secondary',
         item: 'tagsinput-item',
-        items: 'tagsinput-items',
-        menu: 'tagsinput-menu shadow-sm',
+        menu: 'tagsinput-menu list-unstyled',
+        menuSmall: 'tagsinput-menu-sm',
+        menuLarge: 'tagsinput-menu-lg',
         placeholder: 'tagsinput-placeholder',
-        tagClear: 'btn btn-sm btn-info',
-        tagClearIcon: 'btn-close btn-close-white pe-none',
-        tagGroup: 'btn-group',
+        tagClear: 'btn d-flex',
+        tagClearIcon: 'btn-close p-0 my-auto pe-none',
+        tagGroup: 'btn-group my-n1',
         tagInput: 'tagsinput-input',
-        tagItem: 'btn btn-sm btn-info',
+        tagItem: 'btn',
         tagToggle: 'tagsinput d-flex flex-wrap position-relative text-start',
-        readonly: 'readonly'
     };
 
-    UI.initComponent('tagsinput', TagsInput);
+    // TagsInput prototype
+    const proto = TagsInput.prototype;
 
-    UI.TagsInput = TagsInput;
+    proto.add = add;
+    proto.getMaxSelections = getMaxSelections;
+    proto.getPlaceholder = getPlaceholder;
+    proto.getValue = getValue;
+    proto.remove = remove;
+    proto.removeAll = removeAll;
+    proto.setMaxSelections = setMaxSelections;
+    proto.setPlaceholder = setPlaceholder;
+    proto.setValue = setValue;
+    proto._events = _events;
+    proto._buildOption = _buildOption;
+    proto._getDataFromDOM = _getDataFromDOM;
+    proto._getDataInit = _getDataInit;
+    proto._getResultsInit = _getResultsInit;
+    proto._refresh = _refresh;
+    proto._refreshDisabled = _refreshDisabled;
+    proto._refreshPlaceholder = _refreshPlaceholder;
+    proto._render = _render;
+    proto._renderInfo = _renderInfo;
+    proto._renderItem = _renderItem;
+    proto._renderMenu = _renderMenu;
+    proto._renderPlaceholder = _renderPlaceholder;
+    proto._renderResults = _renderResults;
+    proto._renderSelection = _renderSelection;
+    proto._renderToggle = _renderToggle;
+    proto._selectValue = _selectValue;
+    proto._setValue = _setValue;
+    proto._updateSearchWidth = _updateSearchWidth;
 
-});
+    // TagsInput init
+    ui.initComponent('tagsinput', TagsInput);
+
+    exports.TagsInput = TagsInput;
+
+}));
+//# sourceMappingURL=frost-ui-tagsinput.js.map

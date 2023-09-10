@@ -1,73 +1,33 @@
-$spacing: 1rem !default;
-
-$disabled-opacity: .5 !default;
-
-// border
-$border-size: 1px !default;
-$border-style: solid !default;
-
-// color
-$white: #fff !default;
-$black: #000 !default;
-$gray: #808080 !default;
-
-$color-variants: (
-    primary: #2b55d4
-) !default;
-
-$text-color: #121212 !default;
-
-$border-color: fade($black, .15) !default;
-
-// text
-$font-size-sm: .875rem !default;
-$font-size-md: 1rem !default;
-$font-size-lg: 1.25rem !default;
-
-$font-weights: (
-    normal: 400
-) !default;
-
-// z index
-$dropdown-z-index: 1000 !default;
-
-// form
-$input-padding-x: $spacing * .5 !default;
-$input-padding-y: $spacing * .5 !default;
-$input-placeholder-color: $gray !default;
-
-$input-sm-padding-x: $spacing * .5 !default;
-$input-sm-padding-y: $spacing * .25 !default;
-$input-sm-font-size: $font-size-sm !default;
-$input-lg-padding-x: $input-padding-x !default;
-$input-lg-padding-y: $input-padding-y !default;
-$input-lg-font-size: $font-size-lg !default;
-
 // tagsinput
-$tagsinput-btn-padding-x: $spacing * .5 !default;
-$tagsinput-btn-padding-y: $spacing * .125 !default;
-$tagsinput-btn-font-size: .75rem !default;
-$tagsinput-item-spacing: $spacing * .25 !default;
+$tagsinput-btn-padding-y: .125rem !default;
+$tagsinput-btn-font-size: .875em !default;
 
-$tagsinput-padding-x: $spacing !default;
-$tagsinput-padding-y: $spacing * .5 !default;
-$tagsinput-color: $text-color !default;
+$tagsinput-btn-color: var(--ui-info-contrast) !default;
+$tagsinput-btn-bg: var(--ui-info) !default;
+$tagsinput-btn-border-color: var(--ui-border-color-translucent) !default;
+$tagsinput-btn-hover-bg: var(--ui-info-highlight) !default;
+$tagsinput-btn-hover-border-color: var(--ui-btn-border-color) !default;
+$tagsinput-btn-active-border-color: var(--ui-btn-border-color) !default;
+$tagsinput-item-spacing: .25rem !default;
 
-$tagsinput-menu-font-size: $font-size-md !default;
-$tagsinput-menu-color: $tagsinput-color !default;
-$tagsinput-menu-background-color: $white !default;
-$tagsinput-menu-border-size: $border-size !default;
-$tagsinput-menu-border-color: $border-color !default;
+$tagsinput-placeholder-color: var(--ui-secondary-color) !default;
 
-$tagsinput-items-max-height: 250px !default;
+$tagsinput-z-index: 1000 !default;
+$tagsinput-font-size: var(--ui-font-size) !default;
+$tagsinput-color: var(--ui-body-color) !default;
+$tagsinput-bg: var(--ui-body-bg) !default;
+$tagsinput-border-width: var(--ui-border-width) !default;
+$tagsinput-border-color: var(--ui-border-color) !default;
 
-$tagsinput-item-padding-x: $tagsinput-padding-x !default;
-$tagsinput-item-padding-y: $spacing * .25 !default;
-$tagsinput-item-font-weight: map-get($font-weights, normal) !default;
-$tagsinput-item-color: $tagsinput-menu-color !default;
+$tagsinput-sm-font-size: var(--ui-font-size-sm) !default;
+$tagsinput-lg-font-size: var(--ui-font-size-lg) !default;
 
-$tagsinput-item-focus-background-color: map-get($color-variants, primary) !default;
-$tagsinput-item-focus-color: text-color($tagsinput-item-focus-background-color) !default;
-$tagsinput-item-active-color: $tagsinput-color !default;
-$tagsinput-item-active-background-color: fade($black, .1) !default;
-$tagsinput-item-disabled-opacity: $disabled-opacity !default;
+$tagsinput-item-padding-x: .5rem !default;
+$tagsinput-item-padding-y: .25rem !default;
+$tagsinput-item-font-weight: 400 !default;
+$tagsinput-item-color: var(--ui-body-color) !default;
+
+$tagsinput-item-focus-color: var(--ui-primary-contrast) !default;
+$tagsinput-item-focus-bg: var(--ui-primary) !default;
+$tagsinput-item-active-color: var(--ui-body-color) !default;
+$tagsinput-item-active-bg: var(--ui-secondary-bg) !default;
