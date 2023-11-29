@@ -69,9 +69,8 @@ TagsInput.defaults = {
     minContact: false,
 };
 
-// Default classes
+// TagsInput classes
 TagsInput.classes = {
-    // action: 'tagsinput-action',
     active: 'active',
     disabled: 'disabled',
     disabledItem: 'disabled',
