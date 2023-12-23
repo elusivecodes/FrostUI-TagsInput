@@ -107,6 +107,18 @@ export function _events() {
             return;
         }
 
+
+        if (e.code === 'Escape' && $.isConnected(this._menuNode)) {
+            e.stopPropagation();
+
+            // close the menu
+            this.hide();
+
+            $.triggerEvent(this._searchInput, 'focus.ui.tagsinput');
+
+            return;
+        }
+
         if (!['ArrowDown', 'ArrowUp', 'Enter', 'NumpadEnter'].includes(e.code)) {
             return;
         }
@@ -181,20 +193,6 @@ export function _events() {
         } else if (nodeRect.bottom > itemsRect.bottom) {
             $.setScrollY(this._menuNode, itemsScrollY + nodeRect.bottom - itemsRect.bottom);
         }
-    });
-
-    $.addEvent(this._searchInput, 'keyup.ui.tagsinput', (e) => {
-        if (e.code !== 'Escape' || !$.isConnected(this._menuNode)) {
-            return;
-        }
-
-        e.stopPropagation();
-
-        // close the menu
-        this.hide();
-
-        $.blur(this._searchInput);
-        $.focus(this._searchInput);
     });
 
     if (this._options.getResults) {
