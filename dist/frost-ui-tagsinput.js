@@ -558,6 +558,8 @@
                     return;
             }
 
+            e.preventDefault();
+
             // focus the previous/next item
 
             let focusNode;

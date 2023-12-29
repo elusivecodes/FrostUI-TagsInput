@@ -151,6 +151,8 @@ export function _events() {
                 return;
         }
 
+        e.preventDefault();
+
         // focus the previous/next item
 
         let focusNode;
