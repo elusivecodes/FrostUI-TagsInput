@@ -1,6 +1,6 @@
 {
     "name": "@fr0st/ui-tagsinput",
-    "version": "2.0.6",
+    "version": "2.0.7",
     "description": "FrostUI-TagsInput is a free, open-source Tags component for Javascript.",
     "keywords": [
         "ui",
@@ -18,11 +18,10 @@
     "main": "./dist/frost-ui-tagsinput.js",
     "type": "module",
     "files": [
-        "/dist/frost-ui-tagsinput.css",
-        "/dist/frost-ui-tagsinput.js",
-        "/src/scss",
+        "dist",
         "/LICENSE",
-        "/README.md"
+        "/README.md",
+        "src"
     ],
     "scripts": {
         "build": "npm run css && npm run js",
