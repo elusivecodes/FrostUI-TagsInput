@@ -27,9 +27,9 @@
     width: 0;
     min-width: 20px;
     padding: 0;
+    outline: 0;
     background: transparent;
     border: 0;
-    outline: 0;
 }
 
 .tagsinput-placeholder {
@@ -66,10 +66,10 @@
 }
 
 .tagsinput-item {
+    clear: both;
     display: block;
     width: 100%;
     padding: var(--ui-tagsinput-item-padding-y) var(--ui-tagsinput-item-padding-x);
-    clear: both;
     font-weight: $tagsinput-item-font-weight;
     color: var(--ui-tagsinput-item-color);
     text-align: inherit;
